@@ -1,0 +1,16 @@
+let
+  type lista = {item:int, resto:lista}
+  
+  function agregar(n:int,l:lista):lista =
+    lista {item = n, resto = l}
+  
+  function filtrar(n:int,l:lista):lista =
+    let
+      var app_rec:lista := filtrar(n,l.resto)
+    in
+      if l.item = n then app_rec else agregar(l.item,app_rec)
+    end
+in
+  nil
+end
+

@@ -1,0 +1,27 @@
+structure Ej2 =
+struct
+
+  fun cantprints ... =
+  ...
+
+
+  fun cantplus ... =
+  ...
+
+end
+
+(* ejecutar con ./tiger -arbol prog.tig
+                           |
+                        devuelve el AST   
+
+*)
+
+(*
+  fun foldr _ i [] = i
+  | foldr f i (h::t) = f(h,foldr f i t)
+  
+  foldr op+ 0 [1,2,3,4,5]
+  
+ 
+
+*)
