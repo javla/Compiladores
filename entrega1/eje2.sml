@@ -15,7 +15,7 @@ fun  cantprintsExp (CallExp ({func = "print", args = []},_)) = raise Fail "print
   | cantprintsExp (OpExp ({right = e1, oper = _, left = e2},_)) = cantprintsExp e1 + cantprintsExp e2
   | cantprintsExp (RecordExp ({fields = xs, typ = _},_)) = foldr(fn ((_,e),n) => cantprintsExp e + n) 0 xs
   | cantprintsExp (SeqExp (xs,_)) = foldr(fn (x,n) => cantprintsExp x + n) 0 xs
-  | cantprintsExp (AssignExp ({var = _, exp = e},_)) = cantprintsExp e
+  | cantprintsExp (AssignExp ({var = v, exp = e},_)) = cantplusVar v + cantprintsExp e
   | cantprintsExp (IfExp ({test = e1, then' = e2, else' = (SOME e3)},_)) = cantprintsExp e1 + cantprintsExp e2 + cantprintsExp e3
   | cantprintsExp (IfExp ({test = e1, then' = e2, else' = NONE},_)) = cantprintsExp e1 + cantprintsExp e2
   | cantprintsExp (WhileExp ({test = e1, body = e2}, _)) = cantprintsExp e1 + cantprintsExp e2
