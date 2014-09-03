@@ -15,7 +15,7 @@ fun  cantprintsExp (CallExp ({func = "print", args = []},_)) = raise Fail "print
   | cantprintsExp (OpExp ({right = e1, oper = _, left = e2},_)) = cantprintsExp e1 + cantprintsExp e2
   | cantprintsExp (RecordExp ({fields = xs, typ = _},_)) = foldr(fn ((_,e),n) => cantprintsExp e + n) 0 xs
   | cantprintsExp (SeqExp (xs,_)) = foldr(fn (x,n) => cantprintsExp x + n) 0 xs
-  | cantprintsExp (AssignExp ({var = v, exp = e},_)) = cantplusVar v + cantprintsExp e
+  | cantprintsExp (AssignExp ({var = v, exp = e},_)) = cantprintsVar v + cantprintsExp e
   | cantprintsExp (IfExp ({test = e1, then' = e2, else' = (SOME e3)},_)) = cantprintsExp e1 + cantprintsExp e2 + cantprintsExp e3
   | cantprintsExp (IfExp ({test = e1, then' = e2, else' = NONE},_)) = cantprintsExp e1 + cantprintsExp e2
   | cantprintsExp (WhileExp ({test = e1, body = e2}, _)) = cantprintsExp e1 + cantprintsExp e2
@@ -43,7 +43,7 @@ fun cantplus (VarExp (v,_)) = cantplusVar v
   | cantplus (OpExp ({left = e1, oper = PlusOp, right = e2},_)) = 1 + cantplus e1 + cantplus e2
   | cantplus (RecordExp ({fields = flds, typ = _},_)) = foldr (fn ((_,e),n) => cantplus e + n) 0 flds
   | cantplus (SeqExp (expL,_)) = foldr (fn (e,n) => cantplus e + n) 0 expL
-  | cantplus (AssignExp ({var = _, exp = e},_)) = cantplus e
+  | cantplus (AssignExp ({var = v, exp = e},_)) = cantplusVar v + cantplus e
   | cantplus (IfExp ({test = e1, then' = e2, else' = NONE},_)) = cantplus e1 + cantplus e2
   | cantplus (IfExp ({test = e1, then' = e2, else' = (SOME e3)},_)) = cantplus e1 + cantplus e2 + cantplus e3
   | cantplus (WhileExp ({test = e1, body = e2},_)) = cantplus e1 + cantplus e2
