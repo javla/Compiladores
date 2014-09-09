@@ -194,8 +194,14 @@ fun transExp(venv, tenv) =
 		else if tipoReal (#ty ttest) <> TInt then error("Error de tipo en la condición", nl)
 		else error("El cuerpo de un while no puede devolver un valor", nl)
 	    end
-	  | trexp(ForExp({var, escape, lo, hi, body}, nl)) =
-	    {exp=(), ty=TUnit} (*COMPLETAR*)
+	  | trexp(ForExp({var, lo = e1, hi = e2, body = e3}, nl)) =
+	    (* NOOSOTROS *)
+            let
+                val {ty = tipo1, ...} = trexp e1
+                val {ty = tipo2, ...} = trexp e2
+                val {ty = tipo3, ...} = trexp e3
+                val {ty = varType , ...} = trvar (var,nl)
+                (* aca hay que comparar que varType, tipo1 y tipo2 sean de tipo int, el resto no se *)
 	  | trexp(LetExp({decs, body}, _)) =
 	    let
 		val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
