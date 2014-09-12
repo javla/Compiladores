@@ -181,7 +181,7 @@ fun transExp(venv, tenv) =
                 if tiposIguales expType varType then
                     {exp=(), ty = TUnit }
                 else
-                   error("Error de tipos en asignación", nl)
+                    error("Error de tipos en asignación", nl)
             end
 	  | trexp(IfExp({test, then', else'=SOME else'}, nl)) =
 	    let val {exp=testexp, ty=tytest} = trexp test
@@ -209,20 +209,20 @@ fun transExp(venv, tenv) =
 	    end
 	  | trexp(ForExp({var, lo = e1, hi = e2, body = e3, ...}, nl)) =
 	    (* NOSOTROS *)
-                let
-                    val {ty = typeLo, ...} = trexp e1
-                    val {ty = typeHi, ...} = trexp e2
-                    val venv' = tabInserta (var,IntReadOnly,venv)
-                    val {ty = typeBody, ...} = transExp (venv', tenv) e3
-                in
-                    if(not((tiposIguales typeLo typeHi) andalso (tiposIguales TInt typeLo)))
-                    then error("Expresiones en for, NO enteras",nl)
+            let
+                val {ty = typeLo, ...} = trexp e1
+                val {ty = typeHi, ...} = trexp e2
+                val venv' = tabInserta (var,IntReadOnly,venv)
+                val {ty = typeBody, ...} = transExp (venv', tenv) e3
+            in
+                if(not((tiposIguales typeLo typeHi) andalso (tiposIguales TInt typeLo)))
+                then error("Expresiones en for, NO enteras",nl)
+                else
+                    if(not(tiposIguales typeBody TUnit))
+                    then error("Cuerpo del for no es de tipo Unit",nl)
                     else
-                        if(not(tiposIguales typeBody TUnit))
-                        then error("Cuerpo del for no es de tipo Unit",nl)
-                        else
-                            {exp = (), ty = TUnit}
-                end
+                        {exp = (), ty = TUnit}
+            end
 	  | trexp(LetExp({decs, body}, _)) =
 	    let
 		val (venv', tenv', _) = List.foldl (fn (d, (v, t, _)) => trdec(v, t) d) (venv, tenv, []) decs
@@ -236,13 +236,13 @@ fun transExp(venv, tenv) =
 	  | trexp(ArrayExp({typ, size = e1, init = e2}, nl)) =
             (*NOSOTROS*)
             let
-                val {ty = typeSize, ...} = trexp size
-                val {ty = typeInit, ...} = trexp init
+                val {ty = typeSize, ...} = trexp e1
+                val {ty = typeInit, ...} = trexp e2 (* la expresion init siempre existe?, puede ser cualquier tipo? *)
             in
-                if(not(tiposIguales(typeSize, TInt)))
-                  error("Tipo no entero en size",nl)
+                if(not(tiposIguales typeSize TInt)) then
+                    error("Tipo NO entero en arreglo",nl)
                 else
-                  {exp=(), ty=TArray (Tipo,unique)}
+                    {exp = (), ty = TArray(typeInit,ref ())}
             end
 	and trvar(SimpleVar s, nl) =
             (* NOSOTROS *)
@@ -257,15 +257,74 @@ fun transExp(venv, tenv) =
 		{exp=(), ty=varType}
             end
 	  | trvar(FieldVar(v, s), nl) =
-	    {exp=(), ty=TUnit} (*COMPLETAR*)
+            (*NOSOTROS*)
+            let
+                val {ty = typeVar, ...} = trvar (v,nl)
+            in
+                (case typeVar of
+                     TRecord (xs,_) =>
+                     (case List.find(fn (nameMember,_,_) => nameMember = s) xs of
+                          SOME (_,t,_) => {exp = (), ty = t}
+                        | NONE => error("Record: miembro inexistente",nl))
+                   | _ => error("Record: no es un record",nl))
+            end
 	  | trvar(SubscriptVar(v, e), nl) =
-	    {exp=(), ty=TUnit} (*COMPLETAR*)
-	and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
-	    (venv, tenv, []) (*COMPLETAR*)
+	    (*NOSOTROS*)
+            let
+                val {ty = typeExp, ...} = trexp e
+                val {ty = typeVar, ...} = trvar (v,nl)
+            in
+                if (not(tiposIguales typeExp TInt)) then
+                    error("La expresion no es de tipo Int",nl)
+                else
+                    case typeVar of
+                        TArray (t,unique) => {exp = (), ty = t}
+                      | _ => error("Se intenta acceder a algo que no es un arreglo",nl)
+                
+            end
+        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
+	    (*NOSOTROS*)
+            let
+                val {ty = typeExp, ...} = trexp init
+                val venv' = tabInserta(name,Var {ty=typeExp},venv)
+            in
+                (venv',tenv,[]) 
+            end
 	  | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
-	    (venv, tenv, []) (*COMPLETAR*)
+            let
+                val {ty = typeExp, ...} = trexp init
+                val typeVar = case tabBusca (s,venv) of
+                                  SOME (Var {ty = t}) => t
+                                | SOME IntReadOnly => error("Variable de solo lectura",pos)
+                                | SOME (Func _) => error("Tipo funcion",pos) 
+                                | NONE => raise Fail ("Error -- línea "^Int.toString(pos)^": El tipo "^s^" no esta definido\n")
+            in
+                if (not(tiposIguales typeExp typeVar)) then
+                    error("VarDec: tipo de expresion incorrecta",pos)
+                else
+                    let
+                        val venv' = tabInserta(name,Var {ty=typeExp},venv)
+                    in
+                        (venv',tenv,[])
+                    end
+            end
 	  | trdec (venv,tenv) (FunctionDec fs) =
-	    (venv, tenv, []) (*COMPLETAR*)
+            (*NOSOTROS*)
+            let
+                fun checkNames []  = true
+                    | checkNames (( {name=n,...} , _ )::xs) =
+                      let 
+                          val res = List.all (fn ({name=m,...},_) => m = n) xs
+                      in
+                      if res then
+                          checkNames xs
+                      else
+                          false
+                      end
+                val _ = checkNames fs
+            in
+                (venv, tenv, [])
+            end
 	  | trdec (venv,tenv) (TypeDec ts) =
 	    (venv, tenv, []) (*COMPLETAR*)
     in trexp end
