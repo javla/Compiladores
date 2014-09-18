@@ -1,27 +1,36 @@
 # Unix makefile for tigermain example
 
-#HOME=/usr/bin
-#MOSMLHOME=${HOME}
-#MOSMLTOOLS=$(MOSMLHOME)/camlrunm $(MOSMLHOME)/tools
-#MOSMLLEX=$(MOSMLHOME)/mosmllex
-#MOSMLYACC=$(MOSMLHOME)/mosmlyac -v
+# Para nuestras casas
+HOME=/usr/bin
+MOSMLHOME=${HOME}
+MOSMLTOOLS=$(MOSMLHOME)/camlrunm $(MOSMLHOME)/tools
+MOSMLLEX=$(MOSMLHOME)/mosmllex
+MOSMLYACC=$(MOSMLHOME)/mosmlyac -v
 
-#GCC=gcc
-#CFLAGS= -g
-#MOSMLC=${MOSMLHOME}/mosmlc -c -liberal
-#MOSMLL=${MOSMLHOME}/mosmlc
-
-
-HOME=/home/alumno
-MOSMLHOME=${HOME}/mosml
-MOSMLTOOLS=${MOSMLHOME}/bin/camlrunm ${MOSMLHOME}/bin/tools
-MOSMLLEX=${MOSMLHOME}/bin/mosmllex
-MOSMLYACC=${MOSMLHOME}/bin/mosmlyac -v
+# Para el DCC
+# HOME=/usr/local/bin
+# MOSMLHOME=${HOME}
+# MOSMLTOOLS=$(MOSMLHOME)/camlrunm $(MOSMLHOME)/tools
+# MOSMLLEX=$(MOSMLHOME)/mosmllex
+# MOSMLYACC=$(MOSMLHOME)/mosmlyac -v
 
 GCC=gcc
 CFLAGS= -g
-MOSMLC=${MOSMLHOME}/bin/mosmlc -c -liberal
-MOSMLL=${MOSMLHOME}/bin/mosmlc
+MOSMLC=${MOSMLHOME}/mosmlc -c -liberal
+MOSMLL=${MOSMLHOME}/mosmlc
+
+
+# Para el laboratorio
+# HOME=/home/alumno
+# MOSMLHOME=${HOME}/mosml
+# MOSMLTOOLS=${MOSMLHOME}/bin/camlrunm ${MOSMLHOME}/bin/tools
+# MOSMLLEX=${MOSMLHOME}/bin/mosmllex
+# MOSMLYACC=${MOSMLHOME}/bin/mosmlyac -v
+
+# GCC=gcc
+# CFLAGS= -g
+# MOSMLC=${MOSMLHOME}/bin/mosmlc -c -liberal
+# MOSMLL=${MOSMLHOME}/bin/mosmlc
 
 
 # Unix
