@@ -1,4 +1,4 @@
-(*Operaciones básicas agregadas de la carpeta*)
+(*Operaciones básicas copiadas de la carpeta*)
 
 infix -- ---
 infix rs ls
@@ -62,54 +62,42 @@ val l = List.map string2Ty (tabAList t);
 val r = topsort l;
 *)
 
-(*Copio la generacíon de pares de la carpeta*)
-fun buscaArrRecords lt =
-    let fun buscaRecs [] recs = recs
-          | buscaRecs ((r as {name, ty = RecordTy _}) :: t) recs = buscaRecs t (r :: recs)
-          | buscaRecs ((r as {name, ty = ArrayTy _}) :: t) recs = buscaRecs t (r ::recs)
-          | buscaRecs (_ :: t) recs = buscaRecs t recs
-    in buscaRecs lt [] end
-
-
-fun genPares lt =
+(*Código copiado de la carpeta*)
+fun topsort p =
     let
-        val lrecs = buscaArrRecords lt
-        fun genP [] res = res
-           |genP ({name, ty = NameTy s} :: t) res =
-            genP t ((s,name)::res)
-           |genP ({name, ty = ArrayTy s} :: t) res =
-            genP t ((s,name) :: res)
-           |genP ({name,ty = RecordTy lf} :: t) res =
-            let fun recorre ({typ = NameTy x, ...} :: t) =
-                    (case List.find ((op = rs x) o #name) lrecs  of
-                         SOME _ => recorre t
-                        |_ => x :: recorre t)
-                  | recorre (_ :: l) = recorre l
-                  | recorre [] = []
-                val res' = recorre lf
-                val res'' = List.map (fn x => (x,name)) res'
-            in genP t (res'' @ res) end
-    in
-        genP lt []
+        fun candidato p e =
+            List.filter (fn e => List.all ((op <> rs e) o  snd) p) e
+        fun tsort p [] res = rev res
+          | tsort [] st res = rev (st @ res)
+          | tsort p (st as (h :: t)) res =
+            let val x = (hd (candidato p st))
+                        handle Empty => raise Ciclo
+            in tsort (p --- x) (st -- x) (x :: res) end
+        fun elementos lt =
+            List.foldl (fn ((x,y),l) =>
+                             let val l1 = case List.find (op = rs x) l of
+                                              NONE => x :: l | _ => l
+                                 val l2 = case List.find (op = rs y) l1 of
+                                              NONE => y :: l1 | _ => l1
+                             in l2 end) [] lt
+    in tsort p (elementos p) []
     end
 
-(*La copie mal, asi que esto está mal*)
-(* fun topsort p = *)
-(*     let *)
-(*         fun candidato p e = *)
-(*             List.filter (fn e => List.all ((op <> rs e) o  snd) p) *)
-(*         fun tsort p [] res = rev res *)
-(*           | tsort [] st res = rev (st @ res) *)
-(*           | tsort p (st as (h :: t)) res = *)
-(*             let val x = (hd (candidato st p )) *)
-(*                         handle Empty => raise Ciclo *)
-(*             in tsort (p --- x) (st -- x) (x :: res) end *)
-(*         fun elementos lt = *)
-(*             List.foldr (fn (x,y,l) => *)
-(*                              let val l1 = case List.find (op = rs x) l of *)
-(*                                               NONE => x :: l | _ => l *)
-(*                                  val l2 = case List.find (op = rs y) l1 of *)
-(*                                               NONE => y :: l | _ => l1 *)
-(*                              in l2 end) [] lt *)
-(*     in tsort p (elementos p) [] *)
-(*     end *)
+(* fun procesa [] pares recs env = env *)
+(*   | procesa (sorted as (h :: t)) (pares : {name: symbol, ty: ty} list) recs env = *)
+(*     let fun filt h {name, ty = NameTy t} = h = t *)
+(*           | filt h {name, ty = RecordTy lt} = List.exist ((h ls op =) o #name) lt *)
+(*         val (ps, ps') = List.partition (filt h) pares *)
+(*         val ttop = case List.find ((h ls op =) o #name) recs of *)
+(*                         SOME {ty=RecordTY _, name} => NONE *)
+(*                       | SOME {ty = ArrayTy _, name} => NONE *)
+(*                       | SOME _ => NONE *)
+(*                       | NONE => case tabBusca (h, env) of *)
+(*                                     SOME t = > SOME t *)
+(*                                   | _ => error (h ^ "no existe!") *)
+(*         val env' = case ttop of *)
+(*                        SOME tt => List.foldl (fn  ({name, ty = NameTy ty}, env') => tabInserta (name, tt, env')) *)
+(*                      | _ => error ("error interno") env ps *)
+(*     in *)
+(*         procesa t ps' recs env' *)
+(*     end *)          
