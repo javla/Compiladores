@@ -472,8 +472,13 @@ fun transExp(venv, tenv) =
                        | _ => error (s^" Tipo inexistente", firstNL))
                   | fijaNONE ((name, TRecord (lf, u)) :: t) env =
                     let
-                        fun busNONE ((s, TTipo (t, ref NONE), u), l) =
-                            ((s, TTipo (t, ref (SOME (tabSaca (t, env)))), u) :: l)
+                        (* fun busNONE ((s, TTipo (t, ref NONE), u), l) =
+                            ((s, TTipo (t, ref (SOME (tabSaca (t, env)))), u) :: l) *)
+                        fun busNONE ((s, TTipo (t, r), u), l) = 
+                            case !r of
+                                NONE => let val _ = r := ref (SOME (tabSaca (t, env)))
+                                        in (s, TTipo (t,r,u)) :: l end
+                              | SOME e => (s, TTipo (t, r), u) :: l
                           | busNONE (d, l) = d :: l
                         val lf' = List.foldr busNONE [] lf
                     in fijaNONE t (tabRInserta(name, TRecord (lf', u), env)) end
