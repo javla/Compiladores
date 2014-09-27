@@ -387,7 +387,6 @@ fun transExp(venv, tenv) =
             end
 	  | trdec (venv,tenv) (TypeDec ts) =
             (*NOSOTROS*)
-            (* procesa lista ordenada, no procesa Arrays ni Records *)
             let
                 val firstNL = (#2(hd ts))
 
@@ -420,8 +419,9 @@ fun transExp(venv, tenv) =
                         genP lt []
                     end
 
-                fun procesa [] decs recs env = env
-                  | procesa (sorted as (h::t)) decs recs env =
+                (* procesa lista ordenada, no procesa Arrays ni Records *)
+                fun procesaInicial [] decs recs env = env
+                  | procesaInicial (sorted as (h::t)) decs recs env =
                     let
                         fun filt h {name, ty=NameTy t} = h = t
                           | filt h {name, ty=ArrayTy t} = h = t
@@ -433,13 +433,13 @@ fun transExp(venv, tenv) =
                                                      SOME t => SOME t
                                                    | _ => raise error (h^" Tipo inexistente", firstNL))
                         val env' = case ttopt of
-                                       SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env) (* revisar (env) *)
-                                                             | _ => error ("No deberÃ­a pasar", firstNL)) env ps
+                                       SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env)
+                                                             | (_, env) => env) env ps
                                      | _ => env
-                    in procesa t ps' recs env' end
+                    in procesaInicial t ps' recs env' end
                         
-                (* procesa records *)
-                fun procRecords recs env =
+                (* procesa records y arrays *)
+                fun procRecordsArrays recs env =
                     let
                         fun buscaEnv env' t =
                             case tabBusca(t, env) of
@@ -455,69 +455,71 @@ fun transExp(venv, tenv) =
                           | precs ({name, ty=RecordTy lf} :: t) env' =
                             let
                                 val lf' = List.foldl (fn ({name, typ=NameTy t, ...}, l) => (name, buscaEnv env' t) :: l
-                                                     | ({name, typ=ArrayTy t, ...}, l) => (name, TArray (buscaEnv env' t, ref ())) :: l
                                                      | (_, l) => l) [] lf
                                 val (_, lf'')= List.foldl (fn ((x,y),(n,l)) => (n+1, (x,y,n)::l)) (0,[]) lf'
                                 val env'' = tabInserta (name, TRecord (lf'', ref ()), env')
                             in precs t env'' end
-                          | precs ({name, ty=ArrayTy ty} :: t) env' = precs t (tabInserta (name, TArray (buscaEnv env' ty, ref ()), env'))
-                          | precs _ _ = error ("Error interno precs", firstNL)
+                          | precs ({name, ty=ArrayTy ty} :: t) env' =
+                            precs t (tabInserta (name, TArray (buscaEnv env' ty, ref ()), env'))
+                          | precs _ _ = error ("Error interno: Proceso de Records", firstNL)
                     in precs recs (fromTab env) end
                         
-                (* Encuentra NONEs y los reemplaza con su tipo para insertarlos en env *)
-                fun fijaNONE [] env = env
+                (* reemplaza los tipos "punteros" a NONE, por punteros al record del cual son miembros *)
+                fun fijaNONE [] env = env                  
+                  (*No se daría nunca*)
                   | fijaNONE ((name, TArray (TTipo (s, ref NONE), u)) :: t) env =
                     (case tabBusca(s, env) of
                          SOME (r as (TRecord _)) => fijaNONE t (tabRInserta (name, TArray (TTipo (s, ref (SOME r)), u) , env))
                        | _ => error (s^" Tipo inexistente", firstNL))
+
                   | fijaNONE ((name, TRecord (lf, u)) :: t) env =
                     let
                         (* fun busNONE ((s, TTipo (t, ref NONE), u), l) =
                             ((s, TTipo (t, ref (SOME (tabSaca (t, env)))), u) :: l) *)
                         fun busNONE ((s, TTipo (t, r), u), l) = 
-                            case !r of
-                                NONE => let val _ = r := ref (SOME (tabSaca (t, env)))
-                                        in (s, TTipo (t,r,u)) :: l end
-                              | SOME e => (s, TTipo (t, r), u) :: l
+                            (case !r of
+                                 NONE => let val _ = r := SOME (tabSaca (t, env))
+                                         in (s, TTipo (t,r), u) :: l end
+                               | SOME e => (s, TTipo (t, r), u) :: l)
                           | busNONE (d, l) = d :: l
-                        val lf' = List.foldr busNONE [] lf
+                        val lf' = List.foldl busNONE [] lf
                     in fijaNONE t (tabRInserta(name, TRecord (lf', u), env)) end
-                  | fijaNONE (_::t) env = fijaNONE t env
+                  | fijaNONE (_ :: t) env = fijaNONE t env
                                                    
                 (* ?????? Consulta. *)
-                (*fun fijaRecords decs env =
-          let
-            fun buscaEnv t =
-              case tabBusca (t, env) of
-                SOME t' => t'
-                | _ => error (t^" Tipo inexistente", firstNL)
-            
-            fun fija1 (name, TTipo (s, ref NONE), i) =
-              (name, TTipo (s, ref (SOME (buscaEnv s))), i)
-            | fija1 (name, TRecord (lf, u), i) =
-              let
-                val (nr, r) = valOf (List.find (fn (_,TRecord (_, u')) => u = u'
-                                                    | _ => false) decs)
-                in (name, TTipo (nr, ref (SOME r)), i) end
-            | fija1 x = x
-            
-            fun fija (name, TRecord (lf, u)) = 
-              (name, TRecord (List.map fija1 lf, u)) 
-            | fija x = x
-          in List.map fija decs end *)
+                (* fun fijaRecords decs env = *)
+                (*     let *)
+                (*         fun buscaEnv t = *)
+                (*             case tabBusca (t, env) of *)
+                (*                 SOME t' => t' *)
+                (*               | _ => error (t^" Tipo inexistente", firstNL) *)
+                                           
+                (*         fun fija1 (name, TTipo (s, ref NONE), i) = *)
+                (*             (name, TTipo (s, ref (SOME (buscaEnv s))), i) *)
+                (*           | fija1 (name, TRecord (lf, u), i) = *)
+                (*             let *)
+                (*                 val (nr, r) = valOf (List.find (fn (_,TRecord (_, u')) => u = u' *)
+                (*                                                | _ => false) decs) *)
+                (*             in (name, TTipo (nr, ref (SOME r)), i) end *)
+                (*           | fija1 x = x *)
+                                          
+                (*         fun fija (name, TRecord (lf, u)) =  *)
+                (*             (name, TRecord (List.map fija1 lf, u))  *)
+                (*           | fija x = x *)
+                (*     in List.map fija decs end *)
                                                    
                 (* Fija tipos en un batch *)
-                (* fun fijatipos batch env = *)
-                (*     let *)
-                (*         val pares = genPares batch *)
-                (*         val recs = buscaArrRecords batch *)
-                (*         val ordered = myRev (topsort.topsort pares) (* consultar *) *)
-                (*         val env' = procesa ordered batch recs env *)
-                (*         val env'' = procRecords recs env' *)
-                (*         val env'''= fijaNONE (tabAList env'') env'' *)
-                (*     in env''' end *)
+                fun fijatipos batch env =
+                    let
+                        val pares = genPares batch
+                        val ordered = topsort.topsort pares
+                        val recs = buscaArrRecords batch
+                        val env' = procesaInicial ordered batch recs env
+                        val env'' = procRecordsArrays recs env'
+                        val env'''= fijaNONE (tabAList env'') env''
+                    in env''' end
             in
-                (venv, tenv, [])
+                (venv, fijatipos (map (#1)ts) tenv, [])
             end
     in trexp end
 fun transProg ex =

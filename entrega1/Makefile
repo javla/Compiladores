@@ -79,7 +79,8 @@ clean:
 	$(MOSMLC) $<
 
 depend: tigerabs.sml tigergrm.sml tigerlex.sml tigermain.sml \
-	tigernlin.sml tigerpp.sml eje2-1.sml #Agregado para Practica0
+	tigernlin.sml tigerpp.sml eje2-1.sml \ #Agregado para Practica0
+	topsort.sml
 	$(REMOVE) Makefile.bak
 	$(MOVE) Makefile Makefile.bak
 	$(MOSMLTOOLS)/cutdeps < Makefile.bak > Makefile
@@ -91,14 +92,17 @@ tigerescap.ui: tigerabs.uo
 tigergrm.ui: tigerabs.uo 
 tigerseman.ui: tigerabs.uo 
 tigerescap.uo: tigerescap.ui tigertab.ui tigerabs.uo 
-tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigerabs.uo 
+tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigerabs.uo topsort.uo #Agregado para el topsort
 tigergrm.uo: tigergrm.ui tigernlin.uo tigerabs.uo 
 tigersres.uo: tigertab.ui tigertips.uo tigertemp.ui tigerabs.uo 
 tigertab.uo: tigertab.ui 
 tigermain.uo: tigerseman.ui tigerescap.ui tigergrm.ui tigerlex.uo \
-    tigerpp.uo eje2.uo
+    tigerpp.uo eje2.uo #Agregado para Practica0
 tigertemp.uo: tigertemp.ui 
 tigerlex.uo: tigergrm.ui tigernlin.uo 
 
 #Agregado para ela practica 0
 eje2.uo : eje2.ui  
+
+#Agregado para el topsort
+topsort.uo : topsort.ui
