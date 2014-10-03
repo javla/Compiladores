@@ -15,9 +15,19 @@ fun fst (x, _) = x and snd (_, y) = y
 fun lp --- e = List.filter ((op <> rs e) o fst) lp
 
 
+fun printList(nil) = (
+    print("\n");
+    ())
+  | printList(x::xs) = (
+    print(x);
+    print(" ");
+    printList(xs)
+    );
 
 open tigerabs
 open tigersres
+
+open tigerpp
 
 type expty = {exp: unit, ty: Tipo}
 
@@ -249,13 +259,25 @@ fun transExp(venv, tenv) =
 	  | trexp(ArrayExp({typ, size = e1, init = e2}, nl)) =
             (*NOSOTROS*)
             let
+                val _ = (print("2º entorno: "); prTenv tenv)
+                
                 val {ty = typeSize, ...} = trexp e1
                 val {ty = typeInit, ...} = trexp e2 (* la expresion init siempre existe?, puede ser cualquier tipo? *)
+
+                
+
+                val (t,u) = (case tabBusca (typ,tenv) of
+                                 SOME (TArray (t,u)) => (t,u)
+                               | SOME tt => error("se esperaba tipo array y "^typ^" no es array",nl)
+                               | NONE => error(typ^" no esta definido",nl))
+                val _ = if(not(tiposIguales typeSize TInt)) then
+                            error("Tamaño NO es entero en arreglo",nl)
+                        else
+                            if(not(tiposIguales typeInit t)) then
+                                error("Tipo init no coincide con tipo del arreglo",nl)
+                            else ()
             in
-                if(not(tiposIguales typeSize TInt)) then
-                    error("Tipo NO entero en arreglo",nl)
-                else
-                    {exp = (), ty = TArray(typeInit,ref ())}
+                {exp = (), ty = TArray(typeInit,u)}
             end
 	and trvar(SimpleVar s, nl) =
             (* NOSOTROS *)
@@ -305,12 +327,17 @@ fun transExp(venv, tenv) =
             end
 	  | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
             let
+                val _ = (print("1º entorno: "); prTenv tenv)
                 val {ty = typeExp, ...} = trexp init
-                val typeVar = case tabBusca (s,venv) of
-                                  SOME (Var {ty = t}) => t
-                                | SOME IntReadOnly => error("Variable de solo lectura",pos)
-                                | SOME (Func _) => error("Tipo funcion",pos) 
-                                | NONE => raise Fail ("Error -- línea "^Int.toString(pos)^": El tipo "^s^" no esta definido\n")
+                val typeVar = (case tabBusca (s,tenv) of
+                                   SOME t => t
+                                 | NONE => error ("El tipo "^s^" no esta definido\n", pos))
+            (*   SOME (Var {ty = t}) => t *)
+            (* | SOME IntReadOnly => error("Variable de solo lectura",pos) *)
+            (* | SOME (Func _) => error("Tipo funcion",pos)  *)
+            (* | NONE => raise Fail ("Error -- línea "^Int.toString(pos)^": El tipo "^s^" no esta definido\n") *)
+                val _ = (print (showT typeVar) ; print (" ") ; print (showT typeExp))
+                        
             in
                 if (not(tiposIguales typeExp typeVar)) then
                     error("VarDec: tipo de expresion incorrecta",pos)
@@ -459,8 +486,10 @@ fun transExp(venv, tenv) =
                                 val (_, lf'')= List.foldl (fn ((x,y),(n,l)) => (n+1, (x,y,n)::l)) (0,[]) lf'
                                 val env'' = tabInserta (name, TRecord (lf'', ref ()), env')
                             in precs t env'' end
+
                           | precs ({name, ty=ArrayTy ty} :: t) env' =
                             precs t (tabInserta (name, TArray (buscaEnv env' ty, ref ()), env'))
+
                           | precs _ _ = error ("Error interno: Proceso de Records", firstNL)
                     in precs recs (fromTab env) end
                         
@@ -513,21 +542,35 @@ fun transExp(venv, tenv) =
                     let
                         val pares = genPares batch
                         val ordered = topsort.topsort pares
+                        
+                        val _ = (print("El topsort devuelve: "); printList(ordered))
+                        
                         val recs = buscaArrRecords batch
                         val env' = procesaInicial ordered batch recs env
+
+                        val _ = (print("Tabla en el 1º procesa: ") ; printTab (env'); print("\n"))
                         val env'' = procRecordsArrays recs env'
+                        val _ = (print("Tabla en el 2º procesa: ") ; printTab (env''); print("\n"))
+                        
                         val env'''= fijaNONE (tabAList env'') env''
+                                                
                     in env''' end
             in
-                (venv, fijatipos (map (#1)ts) tenv, [])
+                let
+                    val tenv' = fijatipos (map (#1) ts) tenv
+                    val _ = (print("Tabla: ") ; prTenv tenv')
+                in
+                    (venv, tenv', [])
+                end
             end
     in trexp end
+
 fun transProg ex =
     let	val main =
 	    LetExp({decs=[FunctionDec[({name="_tigermain", params=[],
-					result=NONE, body=ex}, 0)]],
+					result= SOME "int", body=ex}, 0)]],
 		    body=UnitExp 0}, 0)
-	(*val _ = transExp(tab_vars, tab_tipos) main*)
-	val _ = transExp(tab_vars, tab_tipos) ex (* despues hay que cambiarlo *)
+	val _ = transExp(tab_vars, tab_tipos) main
+	(* val _ = transExp(tab_vars, tab_tipos) ex (\* despues hay que cambiarlo *\) *)
     in	print "bien!\n" end
 end

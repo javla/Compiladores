@@ -23,7 +23,7 @@ MOSMLL=${MOSMLHOME}/mosmlc
 # Para el laboratorio
 # HOME=/home/alumno
 # MOSMLHOME=${HOME}/mosml
-# MOSMLTOOLS=${MOSMLHOME}/bin/camlrunm ${MOSMLHOME}/bin/tools
+# MOSMLTOOLS=${MOSMLHOME}/bin/camlrunm ${MOSMLHOME}/tools
 # MOSMLLEX=${MOSMLHOME}/bin/mosmllex
 # MOSMLYACC=${MOSMLHOME}/bin/mosmlyac -v
 
@@ -47,7 +47,9 @@ EXEFILE=
 .SUFFIXES : .sig .sml .ui .uo
 
 GRALOBJS= tigerabs.uo tigergrm.uo tigerlex.uo tigermain.uo \
-	tigernlin.uo tigerpp.uo tigerescap.uo tigertab.uo tigerseman.uo tigertemp.uo topsort.uo eje2.uo
+	tigernlin.uo tigerpp.uo tigerescap.uo tigertab.uo \
+	tigerseman.uo tigertemp.uo topsort.uo  \
+	tigertips.uo
 
 all: tiger
 
@@ -79,7 +81,7 @@ clean:
 	$(MOSMLC) $<
 
 depend: tigerabs.sml tigergrm.sml tigerlex.sml tigermain.sml \
-	tigernlin.sml tigerpp.sml eje2-1.sml \ #Agregado para Practica0
+	tigernlin.sml tigerpp.sml \
 	topsort.sml
 	$(REMOVE) Makefile.bak
 	$(MOVE) Makefile Makefile.bak
@@ -87,22 +89,18 @@ depend: tigerabs.sml tigergrm.sml tigerlex.sml tigermain.sml \
 	$(MOSMLTOOLS)/mosmldep >> Makefile
 
 ### DO NOT DELETE THIS LINE
-tigerpp.uo: tigerabs.uo 
+topsort.uo: topsort.ui tigerabs.uo 
+tigerpp.uo: tigertab.ui tigertips.uo tigerabs.uo 
+tigertemp.uo: tigertemp.ui 
+tigertab.uo: tigertab.ui 
+tigersres.uo: tigertab.ui tigertips.uo tigertemp.ui tigerabs.uo 
+tigerlex.uo: tigergrm.ui tigernlin.uo 
+tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui topsort.ui \
+    tigertemp.ui tigerabs.uo 
 tigerescap.ui: tigerabs.uo 
 tigergrm.ui: tigerabs.uo 
-tigerseman.ui: tigerabs.uo 
-tigerescap.uo: tigerescap.ui tigertab.ui tigerabs.uo 
-tigerseman.uo: tigerseman.ui tigersres.uo tigertab.ui tigerabs.uo topsort.uo #Agregado para el topsort
 tigergrm.uo: tigergrm.ui tigernlin.uo tigerabs.uo 
-tigersres.uo: tigertab.ui tigertips.uo tigertemp.ui tigerabs.uo 
-tigertab.uo: tigertab.ui 
+tigerescap.uo: tigerescap.ui tigertab.ui tigerabs.uo 
 tigermain.uo: tigerseman.ui tigerescap.ui tigergrm.ui tigerlex.uo \
-    tigerpp.uo eje2.uo #Agregado para Practica0
-tigertemp.uo: tigertemp.ui 
-tigerlex.uo: tigergrm.ui tigernlin.uo 
-
-#Agregado para ela practica 0
-eje2.uo : eje2.ui  
-
-#Agregado para el topsort
-topsort.uo : topsort.ui
+    tigerpp.uo 
+tigerseman.ui: tigerabs.uo 
