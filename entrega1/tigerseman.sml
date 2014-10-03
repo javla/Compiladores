@@ -154,29 +154,56 @@ fun transExp(venv, tenv) =
 		else error("Error de tipos", nl)
 	    end
 	  | trexp(RecordExp({fields, typ}, nl)) =
-	    let
-		(* Traducir cada expresión de fields *)
-		val tfields = map (fn (sy,ex) => (sy, trexp ex)) fields
+	    (* let *)
+	    (*     (* Traducir cada expresión de fields *) *)
+	    (*     val tfields = map (fn (sy,ex) => (sy, trexp ex)) fields *)
 
-		(* Buscar el tipo *)
-		val (tyr, cs) = case tabBusca(typ, tenv) of
-				    SOME t => (case tipoReal t of
-						   TRecord (cs, u) => (TRecord (cs, u), cs)
-						 | _ => error(typ^" no es de tipo record", nl))
-				  | NONE => error("Tipo inexistente ("^typ^")", nl)
-				                 
-		(* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *)
-		fun verificar [] [] = ()
-		  | verificar (c::cs) [] = error("Faltan campos", nl)
-		  | verificar [] (c::cs) = error("Sobran campos", nl)
-		  | verificar ((s,t,_)::cs) ((sy,{exp,ty})::ds) =
-		    if s<>sy then error("Error de campo", nl)
-		    else if tiposIguales ty t then verificar cs ds
-		    else error("Error de tipo del campo "^s, nl)
-		val _ = verificar cs tfields
-	    in
-		{exp=(), ty=tyr}
-	    end
+	    (*     (* Buscar el tipo *) *)
+	    (*     val (tyr, cs) = case tabBusca(typ, tenv) of *)
+	    (*     		    SOME t => (case tipoReal t of *)
+	    (*     				   TRecord (cs, u) => (TRecord (cs, u), cs) *)
+	    (*     				 | _ => error(typ^" no es de tipo record", nl)) *)
+	    (*     		  | NONE => error("Tipo inexistente ("^typ^")", nl) *)
+
+	    (*     (* Verificar que cada campo esté en orden y tenga una expresión del tipo que corresponde *) *)
+	    (*     fun verificar [] [] = () *)
+	    (*       | verificar (c::cs) [] = error("Faltan campos", nl) *)
+	    (*       | verificar [] (c::cs) = error("Sobran campos", nl) *)
+	    (*       | verificar ((s,t,_)::cs) ((sy,{exp,ty})::ds) = *)
+	    (*         if s<>sy then error("Error de campo", nl) *)
+	    (*         else if tiposIguales ty t then verificar cs ds *)
+	    (*         else error("Error de tipo del campo "^s, nl) *)
+	    (*     val _ = verificar cs tfields *)
+
+
+	    (* in *)
+	    (*     {exp=(), ty=tyr} *)
+	    (* end *)
+
+            (*Reescrito de la carpeta*)
+            let
+		val (tr, tn) = case tabBusca(typ, tenv) of
+				   SOME t => (case tipoReal t of
+						  TRecord (cs, u) => (cs, u)
+						| _ => error(typ^" no es de tipo record", nl))
+				 | NONE => error("Tipo inexistente ("^typ^")", nl)
+
+            (*     (*Agregado!!!*) *)
+            (*     val _ = (print ("En RecordExp: "); print (showT tyr)) *)
+
+
+                fun checkFields [] r = r
+                  | checkFields ((s,e)::flds) r =
+                    let val (t',i') = (case List.find (fn x => #1 x = s) tr of
+                                           SOME s => (#2 s, #3 s)
+                                         | NONE => error (s ^ " campo inexistente", nl))
+                        val {exp = e', ty = te'} = trexp e
+                        val _ = if not (tiposIguales te' t') then error ("Tipos no coinciden en record", nl) else ()
+                    in checkFields flds ((e',i')::r) end
+                val r' = checkFields fields []
+            in
+                {exp = (), ty = TRecord (tr, tn)}
+            end
 	  | trexp(SeqExp(s, nl)) =
 	    let	val lexti = map trexp s
 		val exprs = map (fn{exp, ty} => exp) lexti
@@ -212,7 +239,7 @@ fun transExp(venv, tenv) =
 		val {exp=elseexp, ty=tyelse} = trexp else'
 	    in
 		if tipoReal tytest=TInt andalso tiposIguales tythen tyelse then {exp=(), ty=tythen}
-		else error("Error de tipos en if" ,nl)
+		else error("Tipos distintos en if" ,nl)
 	    end
 	  | trexp(IfExp({test, then', else'=NONE}, nl)) =
 	    let val {exp=exptest,ty=tytest} = trexp test
@@ -239,7 +266,7 @@ fun transExp(venv, tenv) =
                 val {ty = typeBody, ...} = transExp (venv', tenv) e3
             in
                 if(not((tiposIguales typeLo typeHi) andalso (tiposIguales TInt typeLo)))
-                then error("Expresiones en for, NO enteras",nl)
+                then error("Expresiones inválidas en for",nl)
                 else
                     if(not(tiposIguales typeBody TUnit))
                     then error("Cuerpo del for no es de tipo Unit",nl)
@@ -320,7 +347,8 @@ fun transExp(venv, tenv) =
         and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
 	    (*NOSOTROS*)
             let
-                val {ty = typeExp, ...} = trexp init
+                val _ = (print "En VarDec tenemos:\ntenv: " ; prTenv tenv)
+                val {ty = typeExp, ...} = transExp (venv, tenv) init
                 val venv' = tabInserta(name,Var {ty=typeExp},venv)
             in
                 (venv',tenv,[]) 
@@ -328,7 +356,7 @@ fun transExp(venv, tenv) =
 	  | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
             let
                 val _ = (print("1º entorno: "); prTenv tenv)
-                val {ty = typeExp, ...} = trexp init
+                val {ty = typeExp, ...} = transExp (venv, tenv) init
                 val typeVar = (case tabBusca (s,tenv) of
                                    SOME t => t
                                  | NONE => error ("El tipo "^s^" no esta definido\n", pos))
