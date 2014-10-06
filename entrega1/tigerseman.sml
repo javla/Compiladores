@@ -216,9 +216,9 @@ fun transExp(venv, tenv) =
                 val {ty = expType, ...} = trexp e
                 val {ty = varType, ...} = trvar ((SimpleVar s),nl)
             in
-                if (tabEsta(s, venv))
-                then error("Intentando asignar variable Read Only",nl)
-                else
+                case tabBusca(s, venv) of
+                    SOME IntReadOnly => error("Intentando asignar variable Read Only",nl)
+                  | _ => 
                     if tiposIguales expType varType then
                         {exp=(), ty = TUnit }
                     else
@@ -264,7 +264,7 @@ fun transExp(venv, tenv) =
             let
                 val {ty = typeLo, ...} = trexp e1
                 val {ty = typeHi, ...} = trexp e2
-                val venv' = tabInserta (var,IntReadOnly,venv)
+                val venv' = tabRInserta (var,IntReadOnly,venv)
                 val {ty = typeBody, ...} = transExp (venv', tenv) e3
             in
                 if(not((tiposIguales typeLo typeHi) andalso (tiposIguales TInt typeLo)))
@@ -402,24 +402,20 @@ fun transExp(venv, tenv) =
                                                         | SOME ttipo => ttipo)
                                        | _ => raise Fail (printVarError s ^ " es de tipo incorrecto"))
                     in (s,tTipo) end
+
                 fun putVars ([], env) = env  
-                  | putVars (((s,vtype)::xs), env) = tabRInserta(s, Var {ty = vtype}, putVars (xs,env))
+                  | putVars ((((s,vtype))::xs), env) = tabRInserta(s, Var {ty = vtype}, putVars (xs,env))
+
                 fun putFuncs ([], env) = env  
-                  | putFuncs (((s,ftype)::xs), env) = tabRInserta(s, ftype, putFuncs (xs,env))
+                  | putFuncs ((((s,ftype),_)::xs), env) = tabRInserta(s, ftype, putFuncs (xs,env))
 
                 (* esta funcion la utilizaremos para agregar cada una de las funciones de fs a venv *)
                 fun genEnvEntry  ({name = s, params = ps, result = NONE, body = exp}, pos) =
                     let val fmlPairs = map genTipo ps
                         val fmls = map (#2) fmlPairs
-                        val venv' = putVars (fmlPairs,venv)
                         val f = Func {level = (), label = tigertemp.newlabel()^s, formals = fmls, result = TUnit, extern = false}
-                        val venv'' = tabInserta(s, f, venv')
-                        val {ty = tBody, ...} = transExp (venv'',tenv) exp
-                    in 
-                        if not(tiposIguales TUnit tBody) then
-                            error(printVarError s ^ " tiene un tipo de retorno inválido", pos)
-                        else
-                            (s,f)
+                    in
+                        ((s,f),fmlPairs)
                     end
                   | genEnvEntry ({name = s, params = ps, result = (SOME n), body = exp}, pos) =
                     let
@@ -428,18 +424,43 @@ fun transExp(venv, tenv) =
                                       | SOME t => t)
                         val fmlPairs = map genTipo ps
                         val fmls = map (#2) fmlPairs
-                        val venv' = putVars (fmlPairs,venv)
                         val f = Func {level = (), label = tigertemp.newlabel()^s, formals = fmls, result = ttipo, extern = false}
-                        val venv'' = tabInserta(s, f, venv')
-                        val {ty = tBody, ...} = transExp (venv'',tenv) exp
+                    in
+                        ((s,f),fmlPairs)
+                    end
+
+
+                fun checkBodies _ [] [] = ()
+                  | checkBodies venv (x::xs) (({name = s, params = ps, result = NONE, body = exp}, pos)::fs) =
+                    let val venv' = putVars (x,venv)
+                        val {ty = tBody, ...} = transExp (venv',tenv) exp
+                    in
+                        if not(tiposIguales TUnit tBody) then
+                            error(printVarError s ^ " tiene un tipo de retorno inválido", pos)
+                        else
+                            checkBodies venv xs fs
+                    end
+                  | checkBodies venv (x::xs) (({name = s, params = ps, result = (SOME n), body = exp}, pos)::fs) =
+                    let
+                        val ttipo = (case tabBusca (n,tenv) of
+                                         NONE => error(printVarError n ^ " tiene un tipo de retorno no declarado", pos)
+                                       | SOME t => t)
+                                        
+                        val venv' = putVars (x,venv)
+                        val {ty = tBody, ...} = transExp (venv',tenv) exp
                     in
                         if not(tiposIguales ttipo tBody) then
                             error(printVarError s ^ " tiene un tipo de retorno inválido", pos)
                         else
-                            (s,f)
+                            checkBodies venv xs fs
                     end
-                val envEntryList = map genEnvEntry fs
-                val venv' = putFuncs (envEntryList,venv)
+                  | checkBodies _ _ _ = raise Fail "error interno 123"
+                  
+
+                val listFuncEntriesAndOthers = map genEnvEntry fs
+                val formals = map (#2) listFuncEntriesAndOthers
+                val venv' = putFuncs (listFuncEntriesAndOthers,venv)
+                val _ = checkBodies venv' formals fs
             in
                 (venv', tenv, [])
             end
