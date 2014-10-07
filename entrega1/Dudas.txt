@@ -1,9 +1,9 @@
 Test:
 
-- En el test17, obtengo "tipo inexistente", el error deberia ser más explicito indicando que hay un ciclo?
-- En el test18: se puede hacer llamadas a funciones declaradas en el bach?. Si se puede, como detecto un ciclo?. Para que sirve "extern" de Func en tigersres.sml?
+- En el test17, obtengo "tipo inexistente", el error deberia ser más explicito indicando que hay un ciclo? No. Arreglado.
+- En el test18: se puede hacer llamadas a funciones declaradas en el bach?. Si. Como detecto un ciclo? NO se detecta. Para que sirve "extern" de Func en tigersres.sml?
 - No importa que me dé el error con una línea posterior?
-- En test39: puede haber una función más de una función con el mismo nombre?
-- En test45:  por que deberia dar un error?
+- En test39: puede haber más de una función con el mismo nombre? No.
+- En test45:  por que deberia dar un error? Por que no puede inferir el tipo, "nil" solo corresponde a los records?
 - En test51: deberia estar bien?
  

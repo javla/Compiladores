@@ -4,5 +4,5 @@ let
 
 	var a := nil
 in
-	a
+	a ; 0
 end

@@ -23,7 +23,8 @@ fun printList(nil) = (
     print(" ");
     printList(xs)
     );
-fun printVarError v = "\"" ^ v ^ "\""
+
+fun printRef v = "\"" ^ v ^ "\""
 
 
 open tigerabs
@@ -89,6 +90,7 @@ fun tiposIguales (TRecord _) TNil = true
     end
   | tiposIguales a b = (a=b)
 
+
 fun transExp(venv, tenv) =
     let fun error(s, p) = raise Fail ("Error -- línea "^Int.toString(p)^": "^s^"\n")
 	fun trexp(VarExp v) = trvar(v)
@@ -103,10 +105,11 @@ fun transExp(venv, tenv) =
 		val {formals = argsType, result = resultType, ...} =
 		    case tabBusca(f,venv) of
 			SOME (Func e) => e
-		      | _ => error(printVarError f ^ " no está declarada", nl)
+		      | _ => error(printRef f ^ " no está declarada", nl)
+
 		fun compararListaTipos [] [] = true
-		  | compararListaTipos _ [] = error(printVarError f ^ " tiene muchos argumentos", nl)
-		  | compararListaTipos [] _ = error(printVarError f ^ " tiene pocos argumentos", nl)
+		  | compararListaTipos _ [] = error(printRef f ^ " tiene muchos argumentos", nl)
+		  | compararListaTipos [] _ = error(printRef f ^ " tiene pocos argumentos", nl)
 		  | compararListaTipos (x::xs) (y::ys) =
                     let val {ty = expType, ...} = trexp x
                     in
@@ -117,9 +120,9 @@ fun transExp(venv, tenv) =
                     end
 	    in
 		if (compararListaTipos xs argsType) then
-		    {exp=(), ty = TFunc (argsType, resultType)}
+		    {exp=(), ty = resultType}
 		else
-		    error(printVarError f ^ " es llamada con argumento/s inválido/s", nl)
+		    error(printRef f ^ " es llamada con argumento/s inválido/s", nl)
 	    end
 	  | trexp(OpExp({left, oper=EqOp, right}, nl)) =
 	    let
@@ -297,13 +300,13 @@ fun transExp(venv, tenv) =
 
                 val (t,u) = (case tabBusca (typ,tenv) of
                                  SOME (TArray (t,u)) => (t,u)
-                               | SOME tt => error("se esperaba tipo array y "^printVarError typ^" no es array",nl)
-                               | NONE => error(printVarError typ^" no esta definido",nl))
+                               | SOME tt => error("se esperaba tipo array y "^printRef typ^" no es array",nl)
+                               | NONE => error(printRef typ^" no esta definido",nl))
                 val _ = if(not(tiposIguales typeSize TInt)) then
-                            error(printVarError typ ^ " tiene un tamaño no entero",nl)
+                            error(printRef typ ^ " tiene un tamaño no entero",nl)
                         else
                             if(not(tiposIguales typeInit t)) then
-                                error(printVarError typ ^ " es inicializado incorrectamente",nl)
+                                error(printRef typ ^ " es inicializado incorrectamente",nl)
                             else ()
             in
                 {exp = (), ty = TArray(typeInit,u)}
@@ -329,7 +332,7 @@ fun transExp(venv, tenv) =
                      TRecord (xs,_) =>
                      (case List.find(fn (nameMember,_,_) => nameMember = s) xs of
                           SOME (_,t,_) => {exp = (), ty = t}
-                        | NONE => error("miembro " ^ printVarError s ^" inexistente en el record",nl))
+                        | NONE => error("miembro " ^ printRef s ^" inexistente en el record",nl))
                    | _ => error("se intenta acceder a algo que no es un record",nl))
             end
 	  | trvar(SubscriptVar(v, e), nl) =
@@ -339,7 +342,7 @@ fun transExp(venv, tenv) =
                 val {ty = typeVar, ...} = trvar (v,nl)
             in
                 if (not(tiposIguales typeExp TInt)) then
-                    error("La expresion no es de tipo \" int \"",nl)
+                    error("La expresion no es de tip" ^ printRef "int",nl)
                 else
                     case typeVar of
                         TArray (t,_) => {exp = (), ty = t}
@@ -350,7 +353,9 @@ fun transExp(venv, tenv) =
 	    (*NOSOTROS*)
             let
                 val {ty = typeExp, ...} = transExp (venv, tenv) init
-                val venv' = tabInserta(name,Var {ty=typeExp},venv)
+                val venv' = case typeExp of
+                                TNil => error (printRef name ^ " no es posible inferir su tipo", pos)
+                              | _ => tabInserta(name,Var {ty=typeExp},venv)
             in
                 (venv',tenv,[]) 
             end
@@ -360,7 +365,7 @@ fun transExp(venv, tenv) =
                 val {ty = typeExp, ...} = transExp (venv, tenv) init
                 val typeVar = (case tabBusca (s,tenv) of
                                    SOME t => t
-                                 | NONE => error ("El tipo "^printVarError s^" no esta definido\n", pos))
+                                 | NONE => error ("El tipo "^printRef s^" no esta definido\n", pos))
             (*   SOME (Var {ty = t}) => t *)
             (* | SOME IntReadOnly => error("Variable de solo lectura",pos) *)
             (* | SOME (Func _) => error("Tipo funcion",pos)  *)
@@ -369,7 +374,7 @@ fun transExp(venv, tenv) =
                         
             in
                 if (not(tiposIguales typeExp typeVar)) then
-                    error(printVarError name ^ " no tiene el tipo que se le quiere asignar",pos)
+                    error(printRef name ^ " no tiene el tipo que se le quiere asignar",pos)
                 else
                     let
                         val venv' = tabInserta(name,Var {ty=typeExp},venv)
@@ -380,7 +385,7 @@ fun transExp(venv, tenv) =
 	  | trdec (venv,tenv) (FunctionDec fs) =
             (*NOSOTROS*)
             let (* checkNames devuelve el numero de linea en que se dio el error *)
-                fun checkNames [] = ~1
+                fun checkNames [] = (~1, "")
                     | checkNames (( {name=n,...} , nl)::xs) =
                       let 
                           val res = List.all (fn ({name=m,...},_) => m <> n) xs
@@ -388,11 +393,11 @@ fun transExp(venv, tenv) =
                       if res then
                           checkNames xs
                       else
-                          nl
+                          (nl, n)
                       end
-                val nl = checkNames fs
-                val _ = if (nl <> ~1) then error("más de una funcion con el mismo nombre",nl) else ()
-                val _ = (print("ACA : ") ; printList (map (#name o #1) fs))
+                val (nl,name) = checkNames fs
+                val _ = if (nl <> ~1) then error("declaración múltiple de la función " ^ printRef name,nl) else ()
+                (* val _ = (print("ACA : ") ; printList (map (#name o #1) fs)) *)
                  
                 (* esta funcion toma un record de la forma {name: symbol, escape: bool ref, typ: ty} y devuelve un elemento de tipo Tipo*)
                 fun genTipo {name = s, typ = t, ...} =
@@ -400,7 +405,7 @@ fun transExp(venv, tenv) =
                                          NameTy n => (case tabBusca (n,tenv) of
                                                           NONE => raise Fail ("Argumento de tipo no declarado en la funcion: "^s)
                                                         | SOME ttipo => ttipo)
-                                       | _ => raise Fail (printVarError s ^ " es de tipo incorrecto"))
+                                       | _ => raise Fail (printRef s ^ " es de tipo incorrecto"))
                     in (s,tTipo) end
 
                 fun putVars ([], env) = env  
@@ -420,7 +425,7 @@ fun transExp(venv, tenv) =
                   | genEnvEntry ({name = s, params = ps, result = (SOME n), body = exp}, pos) =
                     let
                         val ttipo = (case tabBusca (n,tenv) of
-                                        NONE => error(printVarError n ^ " tiene un tipo de retorno no declarado", pos)
+                                        NONE => error(printRef n ^ " tiene un tipo de retorno no declarado", pos)
                                       | SOME t => t)
                         val fmlPairs = map genTipo ps
                         val fmls = map (#2) fmlPairs
@@ -434,27 +439,28 @@ fun transExp(venv, tenv) =
                   | checkBodies venv (x::xs) (({name = s, params = ps, result = NONE, body = exp}, pos)::fs) =
                     let val venv' = putVars (x,venv)
                         val {ty = tBody, ...} = transExp (venv',tenv) exp
+                        val _ = print ("checkBodies: " ^ showT tBody)
                     in
                         if not(tiposIguales TUnit tBody) then
-                            error(printVarError s ^ " tiene un tipo de retorno inválido", pos)
+                            error(printRef s ^ " tiene un tipo de retorno inválido", pos)
                         else
                             checkBodies venv xs fs
                     end
                   | checkBodies venv (x::xs) (({name = s, params = ps, result = (SOME n), body = exp}, pos)::fs) =
                     let
                         val ttipo = (case tabBusca (n,tenv) of
-                                         NONE => error(printVarError n ^ " tiene un tipo de retorno no declarado", pos)
+                                         NONE => error(printRef n ^ " tiene un tipo de retorno no declarado", pos)
                                        | SOME t => t)
                                         
                         val venv' = putVars (x,venv)
                         val {ty = tBody, ...} = transExp (venv',tenv) exp
                     in
                         if not(tiposIguales ttipo tBody) then
-                            error(printVarError s ^ " tiene un tipo de retorno inválido", pos)
+                            error(printRef s ^ " tiene un tipo de retorno inválido", pos)
                         else
                             checkBodies venv xs fs
                     end
-                  | checkBodies _ _ _ = raise Fail "error interno 123"
+                  | checkBodies _ _ _ = raise Fail "error interno: checkeo de tipos en función\n"
                   
 
                 val listFuncEntriesAndOthers = map genEnvEntry fs
@@ -524,7 +530,7 @@ fun transExp(venv, tenv) =
                                         SOME _ => NONE
                                       | NONE => (case tabBusca(h, env) of
                                                      SOME t => SOME t
-                                                   | _ => raise error (printVarError h^" es un tipo inexistente", firstNL))
+                                                   | _ => raise error (printRef h^" es un tipo inexistente", firstNL))
                         val env' = case ttopt of
                                        SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env)
                                                              | (_, env) => env) env ps
@@ -543,7 +549,7 @@ fun transExp(venv, tenv) =
                                         | SOME tt => tt
                                         | _ => case List.find (fn {name, ...} => name = t) recs of
                                                    SOME {name, ...} => TTipo(name, ref NONE)
-                                                 | _ => error (printVarError t^" es un tipo inexistente", firstNL))
+                                                 | _ => error (printRef t^" es un tipo inexistente", firstNL))
                         fun precs [] env' = env'
                           | precs ({name, ty=RecordTy lf} :: t) env' =
                             let
@@ -565,7 +571,7 @@ fun transExp(venv, tenv) =
                   | fijaNONE ((name, TArray (TTipo (s, ref NONE), u)) :: t) env =
                     (case tabBusca(s, env) of
                          SOME (r as (TRecord _)) => fijaNONE t (tabRInserta (name, TArray (TTipo (s, ref (SOME r)), u) , env))
-                       | _ => error (printVarError s^" tipo inexistente", firstNL))
+                       | _ => error (printRef s^" tipo inexistente", firstNL))
 
                   | fijaNONE ((name, TRecord (lf, u)) :: t) env =
                     let
