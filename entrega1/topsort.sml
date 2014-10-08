@@ -82,22 +82,3 @@ fun topsort p =
                              in l2 end) [] lt
     in tsort p (elementos p) []
     end
-
-(* fun procesa [] pares recs env = env *)
-(*   | procesa (sorted as (h :: t)) (pares : {name: symbol, ty: ty} list) recs env = *)
-(*     let fun filt h {name, ty = NameTy t} = h = t *)
-(*           | filt h {name, ty = RecordTy lt} = List.exist ((h ls op =) o #name) lt *)
-(*         val (ps, ps') = List.partition (filt h) pares *)
-(*         val ttop = case List.find ((h ls op =) o #name) recs of *)
-(*                         SOME {ty=RecordTY _, name} => NONE *)
-(*                       | SOME {ty = ArrayTy _, name} => NONE *)
-(*                       | SOME _ => NONE *)
-(*                       | NONE => case tabBusca (h, env) of *)
-(*                                     SOME t = > SOME t *)
-(*                                   | _ => error (h ^ "no existe!") *)
-(*         val env' = case ttop of *)
-(*                        SOME tt => List.foldl (fn  ({name, ty = NameTy ty}, env') => tabInserta (name, tt, env')) *)
-(*                      | _ => error ("error interno") env ps *)
-(*     in *)
-(*         procesa t ps' recs env' *)
-(*     end *)          

@@ -6,4 +6,8 @@ Test:
 - En test39: puede haber más de una función con el mismo nombre? No.
 - En test45:  por que deberia dar un error? Por que no puede inferir el tipo, "nil" solo corresponde a los records?
 - En test51: deberia estar bien?
+
+En general:
+- Donde pongo las funciones "básicas"?
+- Que hace el "local" del topsort?
  
