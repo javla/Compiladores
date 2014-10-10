@@ -224,7 +224,7 @@ fun transExp(venv, tenv) =
 		else if tipoReal (#ty ttest) <> TInt then error("Error de tipo en la condición", nl)
 		else error("El cuerpo de un while no puede devolver un valor", nl)
 	    end
-	  | trexp(ForExp({var, lo = e1, hi = e2, body = e3, ...}, nl)) =
+	  | trexp(ForExp({var, lo = e1, hi = e2, body = e3, ...}, nl)) =xo
 	    (* NOSOTROS *)
             let
                 val {ty = typeLo, ...} = trexp e1
@@ -236,7 +236,7 @@ fun transExp(venv, tenv) =
                 then error("expresión/es con tipo/s inválido/s",nl)
                 else
                     if(not(tiposIguales typeBody TUnit))
-                    then (print(showT typeBody); error("el cuerpo del bucle tiene tipo inválido",nl))
+                    then error("el cuerpo del bucle tiene tipo inválido",nl)
                     else
                         {exp = (), ty = TUnit}
             end
