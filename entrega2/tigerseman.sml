@@ -347,7 +347,7 @@ fun transExp(venv, tenv) =
                     error(printRef name ^ " con tipo incompatible",pos)
                 else
                     let
-                        (* val venv' = tabInserta(name,Var {ty=typeExp},venv) *)
+                        (* val venv' = tabInserta(name,Var {ty=typeVar}, venv) *)
                         val venv' = venv  (*ECHO DE MANERA TEMPORAL*)
                     in
                         (venv',tenv,[])
@@ -403,7 +403,7 @@ fun transExp(venv, tenv) =
                         genP lt []
                     end
 
-                (* procesa lista ordenada, no procesa Arrays ni Records *)
+                (* procesa la lista ordenada dada por el topsort, no procesa Arrays ni Records *)
                 fun procesaInicial [] decs recs env = env
                   | procesaInicial (sorted as (h::t)) decs recs env =
                     let

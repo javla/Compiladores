@@ -224,7 +224,7 @@ fun transExp(venv, tenv) =
 		else if tipoReal (#ty ttest) <> TInt then error("Error de tipo en la condición", nl)
 		else error("El cuerpo de un while no puede devolver un valor", nl)
 	    end
-	  | trexp(ForExp({var, lo = e1, hi = e2, body = e3, ...}, nl)) =xo
+	  | trexp(ForExp({var, lo = e1, hi = e2, body = e3, ...}, nl)) =
 	    (* NOSOTROS *)
             let
                 val {ty = typeLo, ...} = trexp e1
@@ -328,7 +328,7 @@ fun transExp(venv, tenv) =
                     error(printRef name ^ " con tipo incompatible",pos)
                 else
                     let
-                        val venv' = tabInserta(name,Var {ty=typeExp},venv)
+                        val venv' = tabInserta(name,Var {ty=typeVar},venv)
                     in
                         (venv',tenv,[])
                     end
@@ -468,7 +468,7 @@ fun transExp(venv, tenv) =
                         genP lt []
                     end
 
-                (* procesa lista ordenada, no procesa Arrays ni Records *)
+                (* procesa la lista ordenada dada por el topsort, no procesa Arrays ni Records *)
                 fun procesaInicial [] decs recs env = env
                   | procesaInicial (sorted as (h::t)) decs recs env =
                     let
@@ -480,12 +480,48 @@ fun transExp(venv, tenv) =
                                         SOME _ => NONE
                                       | NONE => (case tabBusca(h, env) of
                                                      SOME t => SOME t
-                                                   | _ => raise error (printRef h^" es un tipo inexistente", firstNL))
+                                                   | _ => NONE) (* raise error (printRef h^" es un tipo inexistente", firstNL)) *)
                         val env' = case ttopt of
                                        SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env)
                                                              | (_, env) => env) env ps
                                      | _ => env
                     in procesaInicial t ps' recs env' end
+
+                (* fun procesaFinal [] decs recs env = env *)
+                (*   | procesaFinal (sorted as (h::t)) decs recs env = *)
+                (*     let *)
+                (*         fun filt h {name, ty=NameTy t} = h = t *)
+                (*           | filt h {name, ty=ArrayTy t} = h = t *)
+                (*           | filt h {name, ty=RecordTy lt} = List.exists (fn {name, ...} => h = name) lt *)
+                (*         val (ps,ps') = List.partition (filt h) decs *)
+                (*         val ttopt = case List.find (fn {name,ty} => name = h) recs of *)
+                (*                         SOME t => SOME t *)
+                (*                       | _ => NONE *)
+                (*         val env' = case ttopt of *)
+                (*                        SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env) *)
+                (*                                              | (_, env) => env) env ps *)
+                (*                      | _ => env *)
+                (*     in procesaFinal t ps' recs env' end *)
+
+                fun procesaFinal [] decs recs env = env
+                  | procesaFinal (sorted as (h::t)) decs recs env =
+                    let
+                        fun filt h {name, ty=NameTy t} = h = t
+                          | filt h {name, ty=ArrayTy t} = h = t
+                          | filt h {name, ty=RecordTy lt} = List.exists (fn {name, ...} => h = name) lt
+                        val (ps,ps') = List.partition (filt h) decs
+                        val ttopt = case List.find (fn {name,ty} => name = h) recs of
+                                        SOME {name=n,ty=t} => (case tabBusca(h, env) of
+                                                                   SOME t => SOME t
+                                                                 | _ => raise error (printRef h^" es un tipo inexistente", firstNL))
+                                      | _ => NONE
+                        val env' = case ttopt of
+                                       SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env)
+                                                             | (_, env) => env) env ps
+                                     | _ => env
+                    in procesaFinal t ps' recs env' end
+
+
                         
                 (* procesa records y arrays *)
                 fun procRecordsArrays recs env =
@@ -540,11 +576,24 @@ fun transExp(venv, tenv) =
                     let
                         val pares = genPares batch
                         val ordered = topsort.topsort pares
+
+                        val _ = (print("Tipos ordenados en el topsort: "); printList(ordered); print("\nEntorno inicial: "); printTab (env); print("\n"))
+
                         val recs = buscaArrRecords batch
                         val env' = procesaInicial ordered batch recs env
+
+                        val _ = (print("Tabla en el 1º procesa: ") ; printTab (env'); print("\n"))
+
                         val env'' = procRecordsArrays recs env'
-                        val env'''= fijaNONE (tabAList env'') env''                                                
-                    in env''' end
+
+                        val _ = (print("Tabla en el 2º procesa: ") ; printTab (env''); print("\n"))
+
+                        val env''' = procesaFinal ordered batch recs env''
+
+                        val _ = (print("Tabla en el 3º procesa: ") ; printTab (env'''); print("\n"))
+
+                        val env''''= fijaNONE (tabAList env''') env'''
+                    in env'''' end
             in
                 let
                     val tenv' = fijatipos (map (#1) ts) tenv
