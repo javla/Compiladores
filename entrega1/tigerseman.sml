@@ -480,7 +480,7 @@ fun transExp(venv, tenv) =
                                         SOME _ => NONE
                                       | NONE => (case tabBusca(h, env) of
                                                      SOME t => SOME t
-                                                   | _ => NONE) (* raise error (printRef h^" es un tipo inexistente", firstNL)) *)
+                                                   | _ => raise error (printRef h^" es un tipo inexistente", firstNL))
                         val env' = case ttopt of
                                        SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env)
                                                              | (_, env) => env) env ps
@@ -503,23 +503,23 @@ fun transExp(venv, tenv) =
                 (*                      | _ => env *)
                 (*     in procesaFinal t ps' recs env' end *)
 
-                fun procesaFinal [] decs recs env = env
-                  | procesaFinal (sorted as (h::t)) decs recs env =
-                    let
-                        fun filt h {name, ty=NameTy t} = h = t
-                          | filt h {name, ty=ArrayTy t} = h = t
-                          | filt h {name, ty=RecordTy lt} = List.exists (fn {name, ...} => h = name) lt
-                        val (ps,ps') = List.partition (filt h) decs
-                        val ttopt = case List.find (fn {name,ty} => name = h) recs of
-                                        SOME {name=n,ty=t} => (case tabBusca(h, env) of
-                                                                   SOME t => SOME t
-                                                                 | _ => raise error (printRef h^" es un tipo inexistente", firstNL))
-                                      | _ => NONE
-                        val env' = case ttopt of
-                                       SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env)
-                                                             | (_, env) => env) env ps
-                                     | _ => env
-                    in procesaFinal t ps' recs env' end
+                (* fun procesaFinal [] decs recs env = env *)
+                (*   | procesaFinal (sorted as (h::t)) decs recs env = *)
+                (*     let *)
+                (*         fun filt h {name, ty=NameTy t} = h = t *)
+                (*           | filt h {name, ty=ArrayTy t} = h = t *)
+                (*           | filt h {name, ty=RecordTy lt} = List.exists (fn {name, ...} => h = name) lt *)
+                (*         val (ps,ps') = List.partition (filt h) decs *)
+                (*         val ttopt = case List.find (fn {name,ty} => name = h) recs of *)
+                (*                         SOME {name=n,ty=t} => (case tabBusca(h, env) of *)
+                (*                                                    SOME t => SOME t *)
+                (*                                                  | _ => raise error (printRef h^" es un tipo inexistente", firstNL)) *)
+                (*                       | _ => NONE *)
+                (*         val env' = case ttopt of *)
+                (*                        SOME tt => List.foldr (fn ({name, ty=NameTy _}, env) => tabInserta(name, tt, env) *)
+                (*                                              | (_, env) => env) env ps *)
+                (*                      | _ => env *)
+                (*     in procesaFinal t ps' recs env' end *)
 
 
                         
@@ -577,7 +577,7 @@ fun transExp(venv, tenv) =
                         val pares = genPares batch
                         val ordered = topsort.topsort pares
 
-                        val _ = (print("Tipos ordenados en el topsort: "); printList(ordered); print("\nEntorno inicial: "); printTab (env); print("\n"))
+                        val _ = (print("Tipos ordenados en el topsort: "); printList(ordered); print("Entorno inicial: "); printTab (env); print("\n"))
 
                         val recs = buscaArrRecords batch
                         val env' = procesaInicial ordered batch recs env
@@ -588,12 +588,14 @@ fun transExp(venv, tenv) =
 
                         val _ = (print("Tabla en el 2º procesa: ") ; printTab (env''); print("\n"))
 
-                        val env''' = procesaFinal ordered batch recs env''
+                        (* val env''' = procesaFinal ordered batch recs env'' *)
 
-                        val _ = (print("Tabla en el 3º procesa: ") ; printTab (env'''); print("\n"))
+                        (* val _ = (print("Tabla en el 3º procesa: ") ; printTab (env'''); print("\n")) *)
 
-                        val env''''= fijaNONE (tabAList env''') env'''
-                    in env'''' end
+                        (* val env''''= fijaNONE (tabAList env''') env''' *)
+
+                        val env''' =  fijaNONE (tabAList env'') env''
+                    in env''' end
             in
                 let
                     val tenv' = fijatipos (map (#1) ts) tenv
