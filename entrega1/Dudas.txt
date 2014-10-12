@@ -7,7 +7,12 @@ Test:
 - En test45:  por que deberia dar un error? Por que no puede inferir el tipo, "nil" solo corresponde a los records?
 - En test51: deberia estar bien?
 
+-El test555.tig en type, esta bien que dé ok? sí, es analogo al test37.tig.
+ La variable "a" se instar con tabInserta o tabRInserta?
+-El test666.tig en type, esta bien que dé ok?
+
+
 En general:
-- Donde pongo las funciones "básicas"?
+- Donde pongo las funciones "básicas"?, podes dejarlas en tigerseman.
 - Que hace el "local" del topsort?
- 
+- En un ArrayExp, la expresion init siempre existe?

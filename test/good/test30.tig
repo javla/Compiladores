@@ -1,14 +1,10 @@
 /* synonyms are fine */
 
 let
-
-  type intlist = {hd : int, tl : intlist}
-  type a = intlist
+  type a = array of int
   type b = a
-  type talist = {ta1 : b}
 
-  /*var arr1 : a := b [10] of 0*/
+  var arr1 : a := b [10] of 0
 in
-  /*arr1[2]*/
-  0
+  arr1[2]
 end
