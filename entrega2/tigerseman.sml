@@ -249,10 +249,10 @@ fun transExp(venv, tenv) =
 	and trvar(SimpleVar s, nl) =
             (* NOSOTROS *)
             let
-		val varType =
+		val (varType,access,level) =
 		    case tabBusca (s, venv) of
-			SOME (Var {ty = t, access=access, level=level}) => t
-                      | SOME (IntReadOnly {access=access, level=level}) => TInt
+			SOME (Var {ty = t, access=access, level=level}) => (t,access,level)
+                      | SOME (IntReadOnly {access=access, level=level}) => (TInt,access,level)
                       | SOME _ => error (printRef s ^ " es de tipo inválido", nl)
 		      | NONE => error(printRef s ^ " no fue declarada", nl)
             in
