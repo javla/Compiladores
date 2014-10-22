@@ -1,0 +1,17 @@
+En el diagrama:
+		|    argn    |	fp+4*(n+1)
+		|    ...     |
+		|    arg2    |	fp+16
+		|    arg1    |	fp+12
+		|	fp level |  fp+8
+		|  retorno   |	fp+4
+		|   fp ant   |	fp
+		--------------	fp
+		|   local1   |	fp-4
+		|   local2   |	fp-8
+		|    ...     |
+		|   localn   |	fp-4*n
+
+1) el "fp level", es el tamaño del frame?
+2) el fp se refiere al frame actual?
+3) que es local?
