@@ -143,9 +143,9 @@ fun simpleVar(acc, nivel) =
     case acc of
         InFrame offset =>
         let fun aux 0 = TEMP fp
-              | aux n = MEM (BINOP (PLUS, fpPrevLev, aux(n-1)))
+              | aux n = MEM (BINOP (PLUS, CONST fpPrevLev, aux(n-1)))
         in
-            Ex (MEM(BINOP(PLUS,aux (!actualLevel - level), CONST k)))
+            Ex (MEM(BINOP(PLUS,aux (!actualLevel - nivel), CONST offset)))
         end
       | InReg r => Ex (TEMP r)
                       

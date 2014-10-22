@@ -172,14 +172,14 @@ fun transExp(venv, tenv) =
 	  | trexp(AssignExp({var = SimpleVar s, exp = e}, nl)) =
 	    (*NOSOTROS*)
             let
-                val {ty = expType, ...} = trexp e
-                val {ty = varType, ...} = trvar ((SimpleVar s),nl)
+                val {ty = expType, exp = expCode} = trexp e
+                val {ty = varType, exp = varCode} = trvar ((SimpleVar s),nl)
             in
                 case tabBusca(s, venv) of
                     SOME (IntReadOnly _) => error(printRef s ^ " es de solo lectura",nl) (*ARREGLAR*)
                   | SOME (Var {ty=tyVar,access=acc,level=level}) => 
                     if (tiposIguales expType varType) andalso (tiposIguales tyVar varType) then
-                        {exp=assignExp{var=simpleVar(acc, level),exp=e}, ty = TUnit }
+                        {exp=assignExp{var=varCode,exp=expCode}, ty = TUnit }
                     else
                         error("tipos incompatibles en asignación", nl)
                   | _ =>
@@ -247,7 +247,17 @@ fun transExp(venv, tenv) =
 	  | trexp(ArrayExp({typ, size, init}, nl)) =
 	    {exp=nilExp(), ty=TUnit} (*COMPLETAR*)
 	and trvar(SimpleVar s, nl) =
-	    {exp=nilExp(), ty=TUnit} (*COMPLETAR*)
+            (* NOSOTROS *)
+            let
+		val varType =
+		    case tabBusca (s, venv) of
+			SOME (Var {ty = t, access=access, level=level}) => t
+                      | SOME (IntReadOnly {access=access, level=level}) => TInt
+                      | SOME _ => error (printRef s ^ " es de tipo inválido", nl)
+		      | NONE => error(printRef s ^ " no fue declarada", nl)
+            in
+		{exp=simpleVar(access, level), ty=varType}
+            end
 	  | trvar(FieldVar(v, s), nl) =
 	    {exp=nilExp(), ty=TUnit} (*COMPLETAR*)
 	  | trvar(SubscriptVar(v, e), nl) =
