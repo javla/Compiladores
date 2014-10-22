@@ -1,18 +1,18 @@
 # Unix makefile for tigermain example
 
 # Para nuestras casas
-HOME=/usr/bin
-MOSMLHOME=${HOME}
-MOSMLTOOLS=$(MOSMLHOME)/camlrunm /usr/local/share/mosml/tools
-MOSMLLEX=$(MOSMLHOME)/mosmllex
-MOSMLYACC=$(MOSMLHOME)/mosmlyac -v
-
-# Para el DCC
-# HOME=/usr/local/bin
+# HOME=/usr/bin
 # MOSMLHOME=${HOME}
-# MOSMLTOOLS=$(MOSMLHOME)/camlrunm $(MOSMLHOME)/tools
+# MOSMLTOOLS=$(MOSMLHOME)/camlrunm /usr/local/share/mosml/tools
 # MOSMLLEX=$(MOSMLHOME)/mosmllex
 # MOSMLYACC=$(MOSMLHOME)/mosmlyac -v
+
+# Para el DCC
+HOME=/usr/local/bin
+MOSMLHOME=${HOME}
+MOSMLTOOLS=$(MOSMLHOME)/camlrunm $(MOSMLHOME)/tools
+MOSMLLEX=$(MOSMLHOME)/mosmllex
+MOSMLYACC=$(MOSMLHOME)/mosmlyac -v
 
 GCC=gcc
 CFLAGS= -g

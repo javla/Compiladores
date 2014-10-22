@@ -50,7 +50,7 @@ type frame = {
 	actualReg: int ref
 }
 type register = string
-datatype access = InFrame of int | InReg of tigertemp.label
+datatype access = InFrame of int | InReg of tigertemp.label (*InFrame tiene el offset respecto del FP*)
 datatype frag = PROC of {body: tigertree.stm, frame: frame}
 	| STRING of tigertemp.label * string
 fun newFrame{name, formals} = {
@@ -86,7 +86,5 @@ fun exp(InFrame k) e = MEM(BINOP(PLUS, TEMP(fp), CONST k))
 fun externalCall(s, l) = CALL(NAME s, l)
 
 fun procEntryExit1 (frame,body) = body
-
-
 
 end
