@@ -193,12 +193,14 @@ fun transExp(venv, tenv) =
                 val {ty = varType, exp = varIntr} = trvar ((SimpleVar s),nl)
             in
                 case tabBusca(s, venv) of
-                    SOME (IntReadOnly _) => error("Intentando asignar variable Read Only",nl)
-                  | _ => 
-                    if tiposIguales expType varType then
-                        {exp=nilExp(), ty = TUnit }
+		    SOME (IntReadOnly _) => error("Intentando asignar variable Read Only", nl)
+		  | SOME (Func _) => error("Intentadon asignar un valor a una funcion", nl)
+                  | SOME (Var _) => 
+                    if tiposIguales expType varType then 
+                        {exp = assignExp(varIntr,expIntr), ty = TUnit }
                     else
                         error("tipos incompatibles en asignación", nl)
+		  | NONE => error("Intentando asignar variable no definida", nl)
             end
 	  | trexp(AssignExp ({var, exp}, nl)) =
 	    (*NOSOTROS*)

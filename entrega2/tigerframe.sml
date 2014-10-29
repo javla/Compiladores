@@ -5,7 +5,7 @@
 		|    ...     |
 		|    arg2    |	fp+16
 		|    arg1    |	fp+12
-		|  fp level  |  fp+8
+		|  fp level  |  fp+8 (static link)
 		|  retorno   |	fp+4
 		|   fp ant   |	fp
 		--------------	fp
