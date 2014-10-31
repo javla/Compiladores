@@ -205,11 +205,11 @@ fun transExp(venv, tenv) =
 	  | trexp(AssignExp ({var, exp}, nl)) =
 	    (*NOSOTROS*)
             let
-                val {ty = expType, ...} = trexp exp
-                val {ty = varType, ...} = trvar (var,nl)
+                val {ty = expType, exp = expIntr} = trexp exp
+                val {ty = varType, exp = varIntr} = trvar (var,nl)
             in
                 if tiposIguales expType varType then
-                    {exp=nilExp(), ty = TUnit }
+                    {exp=assignExp(varIntr,expIntr), ty = TUnit }
                 else
                     error("tipos incompatibles en asignación", nl)
             end
