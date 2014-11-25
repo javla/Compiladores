@@ -23,8 +23,8 @@ type venv = (string, EnvEntry) tigertab.Tabla
 type tenv = (string, Tipo) tigertab.Tabla
 
 val tab_tipos : (string, Tipo) Tabla = tabInserList(
-tabNueva(),
-[("int", TInt), ("string", TString)])
+	                               tabNueva(),
+	                               [("int", TInt), ("string", TString)])
 
 val levelPila: tigertrans.level tigerpila.Pila = tigerpila.nuevaPila1(tigertrans.outermost) 
 fun pushLevel l = tigerpila.pushPila levelPila l
@@ -32,28 +32,28 @@ fun popLevel() = tigerpila.popPila levelPila
 fun topLevel() = tigerpila.topPila levelPila
 
 val tab_vars : (string, EnvEntry) Tabla = tabInserList(
-tabNueva(),
-[("print", Func{level=topLevel(), label="print",
-		formals=[TString], result=TUnit, extern=true}),
- ("flush", Func{level=topLevel(), label="flush",
-		formals=[], result=TUnit, extern=true}),
- ("getchar", Func{level=topLevel(), label="getstr",
-		  formals=[], result=TString, extern=true}),
- ("ord", Func{level=topLevel(), label="ord",
-	      formals=[TString], result=TInt, extern=true}),
- ("chr", Func{level=topLevel(), label="chr",
-	      formals=[TInt], result=TString, extern=true}),
- ("size", Func{level=topLevel(), label="size",
-	       formals=[TString], result=TInt, extern=true}),
- ("substring", Func{level=topLevel(), label="substring",
-		    formals=[TString, TInt, TInt], result=TString, extern=true}),
- ("concat", Func{level=topLevel(), label="concat",
-		 formals=[TString, TString], result=TString, extern=true}),
- ("not", Func{level=topLevel(), label="not",
-	      formals=[TInt], result=TInt, extern=true}),
- ("exit", Func{level=topLevel(), label="exit",
-	       formals=[TInt], result=TUnit, extern=true})
-])
+	                                  tabNueva(),
+	                                  [("print", Func{level=topLevel(), label="print",
+		                                          formals=[TString], result=TUnit, extern=true}),
+	                                   ("flush", Func{level=topLevel(), label="flush",
+		                                          formals=[], result=TUnit, extern=true}),
+	                                   ("getchar", Func{level=topLevel(), label="getstr",
+		                                            formals=[], result=TString, extern=true}),
+	                                   ("ord", Func{level=topLevel(), label="ord",
+		                                        formals=[TString], result=TInt, extern=true}),
+	                                   ("chr", Func{level=topLevel(), label="chr",
+		                                        formals=[TInt], result=TString, extern=true}),
+	                                   ("size", Func{level=topLevel(), label="size",
+		                                         formals=[TString], result=TInt, extern=true}),
+	                                   ("substring", Func{level=topLevel(), label="substring",
+		                                              formals=[TString, TInt, TInt], result=TString, extern=true}),
+	                                   ("concat", Func{level=topLevel(), label="concat",
+		                                           formals=[TString, TString], result=TString, extern=true}),
+	                                   ("not", Func{level=topLevel(), label="not",
+		                                        formals=[TInt], result=TInt, extern=true}),
+	                                   ("exit", Func{level=topLevel(), label="exit",
+		                                         formals=[TInt], result=TUnit, extern=true})
+	                                  ])
 
 fun tipoReal (TTipo (s, ref (SOME (t)))) = tipoReal t
   | tipoReal t = t
@@ -189,27 +189,25 @@ fun transExp(venv, tenv) =
 	  | trexp(AssignExp({var = SimpleVar s, exp = e}, nl)) =
 	    (*NOSOTROS*)
             let
-                val {ty = expType, exp = expIntr} = trexp e
-                val {ty = varType, exp = varIntr} = trvar ((SimpleVar s),nl)
+                val {ty = expType, ...} = trexp e
+                val {ty = varType, ...} = trvar ((SimpleVar s),nl)
             in
                 case tabBusca(s, venv) of
-		    SOME (IntReadOnly _) => error("Intentando asignar variable Read Only", nl)
-		  | SOME (Func _) => error("Intentadon asignar un valor a una funcion", nl)
-                  | SOME (Var _) => 
-                    if tiposIguales expType varType then 
-                        {exp = assignExp(varIntr,expIntr), ty = TUnit }
+                    SOME (IntReadOnly _) => error("Intentando asignar variable Read Only",nl)
+                  | _ => 
+                    if tiposIguales expType varType then
+                        {exp=nilExp(), ty = TUnit }
                     else
                         error("tipos incompatibles en asignación", nl)
-		  | NONE => error("Intentando asignar variable no definida", nl)
             end
 	  | trexp(AssignExp ({var, exp}, nl)) =
 	    (*NOSOTROS*)
             let
-                val {ty = expType, exp = expIntr} = trexp exp
-                val {ty = varType, exp = varIntr} = trvar (var,nl)
+                val {ty = expType, ...} = trexp exp
+                val {ty = varType, ...} = trvar (var,nl)
             in
                 if tiposIguales expType varType then
-                    {exp=assignExp(varIntr,expIntr), ty = TUnit }
+                    {exp=nilExp(), ty = TUnit }
                 else
                     error("tipos incompatibles en asignación", nl)
             end

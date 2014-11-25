@@ -20,7 +20,7 @@ and exp = VarExp of var * pos
 	| AssignExp of {var: var, exp: exp} * pos
 	| IfExp of {test: exp, then': exp, else': exp option} * pos
 	| WhileExp of {test: exp, body: exp} * pos
-	| ForExp of {var: symbol, escape: bool ref,
+	| ForExp of {var: symbol, escape: bool ref, (*si escape es true, significa que var es escapada, y si es false no*)
 		     lo: exp, hi: exp, body: exp} * pos
 	| LetExp of {decs: dec list, body: exp} * pos
 	| BreakExp of pos

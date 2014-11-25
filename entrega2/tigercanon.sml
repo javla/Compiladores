@@ -72,7 +72,7 @@ fun linearize(stm0: stm) : stm list =
 			reorder_exp([a,b], fn l=>BINOP(p,hd l,hd(tl l)))
 		| do_exp(MEM(a)) = reorder_exp([a], fn l=>MEM(hd l))
 		| do_exp(ESEQ(s,e)) = 
-			let	val stms = do_stm s
+			let	vals tms = do_stm s
 				val (stms',e) = do_exp e
 			in	(stms%stms',e) end
 		| do_exp(CALL(e,el)) = 
@@ -93,7 +93,7 @@ type block = stm list
        3 and 4 above, in addition to the extra condition that 
       every block ends with a JUMP or CJUMP *)
 
-fun basicBlocks stms = 
+fun basicBlocks stms = k
 	let	val done = tigertemp.newlabel()
 		fun blocks((head as LABEL _) :: tail, blist) =
 			let	fun next((s as (JUMP _))::rest, thisblock) =
