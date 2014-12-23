@@ -277,7 +277,7 @@ fun transExp(venv, tenv) =
             let
                 val {ty = typeVar, ...} = trvar (v,nl)
             in
-                (case typeVar of
+                (case tipoReal typeVar of
                      TRecord (xs,_) =>
                      (case List.find(fn (nameMember,_,_) => nameMember = s) xs of
                           SOME (_,t,_) => {exp = (), ty = t}
@@ -293,7 +293,7 @@ fun transExp(venv, tenv) =
                 if (not(tiposIguales typeExp TInt)) then
                     error("La expresion no es de tip" ^ printRef "int",nl)
                 else
-                    case typeVar of
+                    case tipoReal typeVar of (*Agregé "tipoReal", para que funcione el test42.tig*)
                         TArray (t,_) => {exp = (), ty = t}
                       | _ => error("se intenta acceder a algo que no es un arreglo",nl)
                 
@@ -439,7 +439,7 @@ fun transExp(venv, tenv) =
 
                 fun genPares lt =
                     let
-                        val lrecs = buscaArrRecords lt
+                        (* val lrecs = buscaArrRecords lt *)
                         fun genP [] res = res
                            |genP ({name, ty = NameTy s} :: t) res =
                             genP t ((s,name)::res)
@@ -447,7 +447,7 @@ fun transExp(venv, tenv) =
                             genP t ((s,name) :: res)
                            |genP ({name,ty = RecordTy lf} :: t) res =
                             let fun recorre ({typ = NameTy x, ...} :: t) =
-                                    (case List.find ((op = rs x) o #name) lrecs  of
+                                    (case List.find ((op = rs x) o #name) lt  of (* cambié "lrecs" con "lt" *)
                                          SOME _ => recorre t
                                         |_ => x :: recorre t)
                                   | recorre (_ :: l) = recorre l
@@ -483,15 +483,16 @@ fun transExp(venv, tenv) =
                 fun segundaPasada batch recs env =
                     let
                         fun buscaEnv env' t =
-                            case tabBusca(t, env) of
-                                SOME (x as (TRecord _)) => TTipo (t, ref (SOME x))
-                              | SOME tt => tt
-                              | _ => (case tabBusca(t, env') of
-                                          SOME (x as (TRecord _)) => TTipo (t, ref (SOME x))
-                                        | SOME tt => tt
-                                        | _ => case List.find (fn {name, ...} => name = t) recs of
-                                                   SOME {name, ...} => TTipo(name, ref NONE)
+                            case List.find (fn {name, ...} => name = t) batch of
+                                SOME {name, ...} => TTipo(name, ref NONE)
+                              | _ => case tabBusca(t, env) of
+                                         SOME (x as (TRecord _)) => TTipo (t, ref (SOME x))
+                                       | SOME tt => tt
+                                       | _ => (case tabBusca(t, env') of
+                                                   SOME (x as (TRecord _)) => TTipo (t, ref (SOME x))
+                                                 | SOME tt => tt
                                                  | _ => error (printRef t^" es un tipo inexistente", firstNL))
+
                         fun precs [] env' = env'
                           | precs ({name, ty=RecordTy lf} :: t) env' =
                             let
@@ -515,7 +516,7 @@ fun transExp(venv, tenv) =
                     env
                   | fijaNONE ((name, TArray (TTipo (s, ref NONE), u)) :: t) env =
                     (case tabBusca(s, env) of
-                         SOME (r as (TRecord _)) => fijaNONE t (tabRInserta (name, TArray (TTipo (s, ref (SOME r)), u) , env))
+                         SOME r => fijaNONE t (tabRInserta (name, TArray (TTipo (s, ref (SOME r)), u) , env)) (* Antes estaba "SOME (r as (TRecord _)" *)
                        | _ => error (printRef s^" tipo inexistente", firstNL))
                   | fijaNONE ((name, TRecord (lf, u)) :: t) env =
                     let
@@ -541,6 +542,9 @@ fun transExp(venv, tenv) =
                 fun fijatipos batch env =
                     let
                         val pares = genPares batch
+
+                        val _ = (print("Pares: "); map (fn (s, s') => print ("("^s^","^s'^")" ^ " - ")) pares ; print("\n"))
+
                         val ordered = topsort.topsort pares
 
                         val _ = (print("Tipos ordenados por el topsort: "); map (fn s => print (s ^ " - ")) ordered ; print("\n"))
