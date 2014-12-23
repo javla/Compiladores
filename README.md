@@ -3,6 +3,13 @@ Compiladores
 
 Compiladores 2014
 
-Nota: La entrega 1, no está terminada. El topsort debe exceptuar el ciclo que
-se produce a raiz de un record. El test999.tig no debería tirar un ciclo.
+Notas:
 
+Para que funcione el test999.tig:
+No generamos pares de dependencia para los miembros de records a hagan referencia
+a tipos que se definen en su propio batch.
+
+Para que funcione el test777.tig, test123.tig y test321.tig:
+Para asignar un tipo a un miembros de un record primero miramos su propio batch
+y si no está, luego vemos el entorno de tipos. Como consecuencia, tuve que agregar
+la función "tipoReal" en FieldVar y SubscriptVar.
