@@ -1,9 +1,7 @@
 Compiladores
 ============
 
-Compiladores 2014
-
-Notas:
+Notas de la entrega1:
 
 Para que funcione el test999.tig:
 No generamos pares de dependencia para los miembros de records a hagan referencia

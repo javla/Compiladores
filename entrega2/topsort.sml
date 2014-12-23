@@ -82,4 +82,3 @@ fun topsort p =
                              in l2 end) [] lt
     in tsort p (elementos p) []
     end
-

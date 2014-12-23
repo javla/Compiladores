@@ -8,7 +8,7 @@ open tigerabs
 exception breakexc
 exception divCero
 	  
-type level = {parent:frame option , frame: frame, level: int}
+type level = {parent:frame option , frame: frame, level: int} (*parent, es el frame de la función que la anida*)
 type access = tigerframe.access
 
 type frag = tigerframe.frag
@@ -26,6 +26,8 @@ fun newLevel{parent={parent, frame, level}, name, formals} = {
     parent=SOME frame,
     frame=newFrame{name=name, formals=formals},
     level=level+1}
+
+fun getLevel{parent, frame, level} = level
 
 fun allocArg{parent, frame, level} b = tigerframe.allocArg frame b
 fun allocLocal{parent, frame, level} b = tigerframe.allocLocal frame b

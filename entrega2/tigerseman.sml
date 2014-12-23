@@ -340,21 +340,21 @@ fun transExp(venv, tenv) =
                       | _ => error("se intenta acceder a algo que no es un arreglo",nl)
                 
             end
-        and trdec (venv, tenv) (VarDec ({name,escape,typ=NONE,init},pos)) = 
+        and trdec (venv, tenv) (VarDec ({name,escape = esc,typ=NONE,init},pos)) = 
 	    (*NOSOTROS*)
             let
                 val {ty = typeExp, exp = initCode} = transExp (venv, tenv) init
-                val (acc,level) = (allocLocal (topLevel()) true, getActualLev())
+                val (acc,level) = (allocLocal (topLevel()) (!esc), getActualLev())
                 val venv' = case typeExp of
                                 TNil => error (printRef name ^ " no es posible inferir su tipo", pos)
                               | _ => tabRInserta(name,Var {ty=typeExp,access=acc,level=level},venv)
             in
-                (venv',tenv,[assignExp{var = simpleVar(acc,level), exp = initCode}]) (*Esta bien?*)
+                (venv',tenv,[assignExp{var = simpleVar(acc,level), exp = initCode}])
             end
-	  | trdec (venv,tenv) (VarDec ({name,escape,typ=SOME s,init},pos)) =
+	  | trdec (venv,tenv) (VarDec ({name,escape = esc,typ=SOME s,init},pos)) =
             let
                 val {ty = typeExp, exp = initCode} = transExp (venv, tenv) init
-                val (acc,level) = (allocLocal (topLevel()) true, getActualLev())
+                val (acc,level) = (allocLocal (topLevel()) (!esc), getActualLev())
                 val typeVar = (case tabBusca (s,tenv) of
                                    SOME t => t
                                  | NONE => error ("el tipo "^printRef s^" no está definido", pos))
@@ -369,9 +369,108 @@ fun transExp(venv, tenv) =
                     end
             end
 	  | trdec (venv,tenv) (FunctionDec fs) =
-	    (venv, tenv, []) (*COMPLETAR*)
+            (*NOSOTROS*)
+            let 
+                fun checkNames [] = (~1, "")
+                  | checkNames (( {name=n,...} , nl)::xs) =
+                    let 
+                        val res = List.all (fn ({name=m,...},_) => m <> n) xs
+                    in
+                        if res then
+                            checkNames xs
+                        else
+                            (nl, n)
+                    end
+
+                val (nl,name) = checkNames fs
+                val _ = if (nl <> ~1) then error("declaración múltiple de la función " ^ printRef name,nl) else ()
+                                                                                                                    
+                (* esta funcion toma un record de la forma {name: symbol, escape: bool ref, typ: ty} y devuelve un elemento de tipo Tipo*)
+                fun genTipo {name = s, typ = t, escape = esc} =
+                    let val tTipo = (case t of
+                                         NameTy n => (case tabBusca (n,tenv) of
+                                                          NONE => raise Fail (printRef s ^ " tiene un tipo inexistente")
+                                                        | SOME ttipo => ttipo)
+                                       | _ => raise Fail (printRef s ^ " tiene un tipo incorrecto"))
+                    in (s, tTipo, !esc) end
+
+                fun putVars ([], _, env) = env  
+                  | putVars ((s,vtype,esc)::xs, level, env) =
+                    let val (acc, numLevel) = (allocArg level esc, getLevel level)
+                    in
+                        tabRInserta(s, Var {ty = vtype, access = acc, level = numLevel}, putVars (xs, level, env))
+                    end
+
+                fun putFuncs ([], env) = env  
+                  | putFuncs ((((s,ftype),_)::xs), env) = tabRInserta(s, ftype, putFuncs (xs,env))
+
+                (* esta funcion la utilizaremos para agregar cada una de las funciones de fs a venv *)
+                fun genEnvEntry ({name = s, params = ps, result = NONE, body = exp}, pos) =
+                    let val fmlPairs = map genTipo ps   
+                        val fmls = map (#2) fmlPairs
+                        val level = newLevel{parent=topLevel(), name = tigertemp.newlabel()^s, formals = map (#3) fmlPairs}
+                        val f = Func {level = level, label = tigertemp.newlabel()^s, formals = fmls, result = TUnit, extern = false}
+                    in
+                        ((s,f),fmlPairs)
+                    end
+                  | genEnvEntry ({name = s, params = ps, result = (SOME n), body = exp}, pos) =
+                    let
+                        val ttipo = (case tabBusca (n,tenv) of
+                                         NONE => error(printRef n ^ " tiene un tipo de retorno inexistente", pos)
+                                       | SOME t => t)
+                        val fmlPairs = map genTipo ps
+                        val fmls = map (#2) fmlPairs
+                        val level = newLevel{parent=topLevel(), name = tigertemp.newlabel()^s, formals = map (#3) fmlPairs}
+                        val f = Func {level = level, label = tigertemp.newlabel()^s, formals = fmls, result = ttipo, extern = false}
+                    in
+                        ((s,f),fmlPairs)
+                    end
+
+                fun checkBodies _ [] [] = ()
+                  | checkBodies venv (((_,fEntry:EnvEntry),x)::xs) (({name = s, result = NONE, body = exp, ...}, pos)::fs) =
+                    let val level = case fEntry of
+                                        Func {level = level, ...} => level
+                                      | _ => raise Fail "error interno: declaración de función"
+                        val venv' = putVars (x, level, venv)
+                        val _ = pushLevel level
+                        val {ty = tBody, exp = bodyCode} = transExp (venv',tenv) exp
+                        val _ = popLevel()
+                        val _ = procEntryExit{level = level, body = bodyCode}
+                    in
+                        if not(tiposIguales TUnit tBody) then
+                            error(printRef s ^ " tiene un tipo de retorno inválido", pos)
+                        else
+                            checkBodies venv xs fs
+                    end
+                  | checkBodies venv (((_,fEntry),x)::xs) (({name = s, result = (SOME n), body = exp, ...}, pos)::fs) =
+                    let
+                        val ttipo = (case tabBusca (n,tenv) of
+                                         NONE => error(printRef n ^ " tiene un tipo de retorno inexistente", pos)
+                                       | SOME t => t)
+                        val level = case fEntry of
+                                        Func {level = level, ...} => level
+                                      | _ => raise Fail "error interno: declaración de función"
+                        val venv' = putVars (x, level, venv)
+                        val _ = pushLevel level
+                        val {ty = tBody, ...} = transExp (venv',tenv) exp
+                        val _ = popLevel()
+                    in
+                        if not(tiposIguales ttipo tBody) then
+                            error(printRef s ^ " tiene un tipo de retorno inválido", pos)
+                        else
+                            checkBodies venv xs fs
+                    end
+                  | checkBodies _ _ _ = raise Fail "error interno: chequeo de tipos en función\n"
+                                              
+
+                val listFuncEntriesAndOthers = map genEnvEntry fs
+                val venv' = putFuncs (listFuncEntriesAndOthers,venv)
+                val _ = checkBodies venv' listFuncEntriesAndOthers fs
+            in
+                (venv', tenv, [])
+            end
 	  | trdec (venv,tenv) (TypeDec ts) =
-	    (venv, tenv, []) (*COMPLETAR*)
+	    (venv, tenv, []) (*NOSOTROS*)
     in trexp end
 fun transProg ex =
     let	val main =
