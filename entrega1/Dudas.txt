@@ -16,3 +16,7 @@ En general:
 - Donde pongo las funciones "básicas"?, podes dejarlas en tigerseman.
 - Que hace el "local" del topsort?
 - En un ArrayExp, la expresion init siempre existe?
+
+Duda 2016:
+En clases, cuando guido hacia el código del scanner creaba el token: ABSMININT, pero NO está en el código que descargamos,
+podemos ignorarlo?
