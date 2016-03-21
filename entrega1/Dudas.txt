@@ -17,6 +17,8 @@ En general:
 - Que hace el "local" del topsort?
 - En un ArrayExp, la expresion init siempre existe?
 
-Duda 2016:
-En clases, cuando guido hacia el código del scanner creaba el token: ABSMININT, pero NO está en el código que descargamos,
+Dudas 2016:
+- En clases, cuando guido hacia el código del scanner creaba el token: ABSMININT, pero NO está en el código que descargamos,
 podemos ignorarlo?
+- Por qué no puedo comparar dos Unit? (línea 115 de tigerseman).
+- Como se anidan los lets?
